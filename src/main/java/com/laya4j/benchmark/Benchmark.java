@@ -1,0 +1,90 @@
+package com.laya4j.benchmark;
+
+import com.laya4j.core.Decision;
+import com.laya4j.core.Question;
+import com.laya4j.predict.LayaPredictor;
+
+import java.util.List;
+import java.util.Map;
+
+/**
+ * Laya 性能基准测试
+ *
+ * 用法:
+ *   Benchmark.run(predictor, questions, n=100);
+ *
+ * 输出:p50 / p95 / p99 / mean / QPS / min / max
+ */
+public class Benchmark {
+
+    public record Result(
+            int n,
+            long minNs,
+            long p50Ns,
+            long p95Ns,
+            long p99Ns,
+            long maxNs,
+            double meanNs,
+            double qps
+    ) {
+        @Override
+        public String toString() {
+            return String.format(
+                    "Benchmark[n=%d] p50=%.1fms p95=%.1fms p99=%.1fms mean=%.1fms qps=%.1f",
+                    n, p50Ns / 1e6, p95Ns / 1e6, p99Ns / 1e6, meanNs / 1e6, qps);
+        }
+    }
+
+    /**
+     * 压测:同一组 questions 跑 n 次
+     */
+    public static Result run(LayaPredictor p, List<Question> questions, String state, int n) {
+        // warmup
+        for (int i = 0; i < 3; i++) p.predict(state, questions);
+
+        long[] samples = new long[n];
+        long total = 0;
+        long min = Long.MAX_VALUE, max = Long.MIN_VALUE;
+        for (int i = 0; i < n; i++) {
+            long t0 = System.nanoTime();
+            Map<String, Decision> r = p.predict(state, questions);
+            long dt = System.nanoTime() - t0;
+            samples[i] = dt;
+            total += dt;
+            if (dt < min) min = dt;
+            if (dt > max) max = dt;
+        }
+        java.util.Arrays.sort(samples);
+        long p50 = samples[n / 2];
+        long p95 = samples[Math.min(n - 1, (int) (n * 0.95))];
+        long p99 = samples[Math.min(n - 1, (int) (n * 0.99))];
+        double mean = (double) total / n;
+        double qps = 1e9 / mean;
+        return new Result(n, min, p50, p95, p99, max, mean, qps);
+    }
+
+    /**
+     * 对比不同 state 长度的延迟
+     */
+    public static java.util.Map<String, Result> varyingLength(LayaPredictor p, List<Question> questions,
+                                                              java.util.Map<String, String> states, int perStateN) {
+        java.util.Map<String, Result> out = new java.util.LinkedHashMap<>();
+        for (var e : states.entrySet()) {
+            out.put(e.getKey(), run(p, questions, e.getValue(), perStateN));
+        }
+        return out;
+    }
+
+    /**
+     * 对比不同 question 数量的延迟
+     */
+    public static java.util.Map<Integer, Result> varyingQuestionCount(
+            LayaPredictor p, String state,
+            java.util.List<java.util.List<Question>> questionSets, int perSetN) {
+        java.util.Map<Integer, Result> out = new java.util.LinkedHashMap<>();
+        for (var qs : questionSets) {
+            out.put(qs.size(), run(p, qs, state, perSetN));
+        }
+        return out;
+    }
+}
