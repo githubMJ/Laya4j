@@ -400,6 +400,137 @@ cp laya_onnx_export/laya_decision.onnx \
 
 ---
 
+## 微调(Fine-Tuning)
+
+**为什么需要 fine-tune**:base `laya-multilingual` 是通用多语种模型,在通用分类/注入/退款场景可用,但**中文细粒度判断**(威胁检测 50%、难度分级 0%、领域识别 40%)准确率低,生产前必须 fine-tune。
+
+参考 Laya 上游的 `typed-decisions` benchmark:base 仅 0.34(接近随机),fine-tune 后达到 0.766,超过 TypeSafe Jev 的 0.727。
+
+### Fine-Tune 流程
+
+#### 1. 准备训练数据
+
+数据格式(每个样本是一个 state + question schema + target):
+
+```json
+{
+  "state": "用户在上海市的地址有误,请帮我改成北京市朝阳区...",
+  "questions": {
+    "intent": {
+      "type": "choice",
+      "instructions": "用户想做什么?",
+      "criteria": {"billing": "...", "tech": "...", ...}
+    },
+    "urgency": {
+      "type": "score",
+      "instructions": "How urgent?",
+      "criteria": ["low", "medium", "critical"]
+    }
+  },
+  "targets": {
+    "intent": "billing",
+    "urgency": 1.5
+  }
+}
+```
+
+数据量建议:**1000+ 条标注样本**(中文场景)。可以:
+- 手工标注(高质量)
+- 用 GPT-4 / Claude 自动标注(数量大但需校准)
+- 从生产日志 + 人工反馈回填
+
+#### 2. 在 Python 端 fine-tune
+
+参考 Laya 上游的 Kaggle notebook:
+[`notebooks/laya_finetune_typed_decisions_2xT4_kaggle.ipynb`](https://github.com/NandhaKishorM/laya/blob/main/notebooks/laya_finetune_typed_decisions_2xT4_kaggle.ipynb)
+
+**完整 loop**:
+1. 加载 base `laya-multilingual` 模型
+2. 用 RLCD(Reinforcement Learning with Calibrated Decisions)训练:
+   - Proper scoring rule 作 reward
+   - GRPO-style policy gradient
+3. 拟合 calibration temperature(per `(qtype, option_count)`)
+4. 评估准确率 / calibration(ECE)
+5. 导出新 ONNX(用本项目同款 `export_onnx.py`)
+
+GPU 要求:**2xT4 (Kaggle 免费)** 或 **单卡 A100**。30k 问题训练约 4-5 小时。
+
+简化版微调(只用 cross-entropy):
+```python
+import laya
+agent = laya.load("convaiinnovations/laya", subfolder="multilingual")
+# 在你的标注数据上做 supervised fine-tuning
+# ... (参考 Kaggle notebook 的训练循环)
+```
+
+#### 3. 导出新的 ONNX
+
+```bash
+cd ../Laya
+python export_onnx.py
+# 生成新的 laya_decision.onnx
+```
+
+#### 4. 放到 Laya4j 项目里
+
+```bash
+# 备份旧模型
+mv models/laya-decision-multilingual-mmbert-base-v0.3.4-1c5edc1.onnx    models/laya-decision-multilingual-mmbert-base-v0.3.4-1c5edc1.onnx.bak
+
+# 放新模型,更新版本号
+NEW_VER="0.3.4-myfinetune-$(date +%Y%m%d)"
+cp laya_onnx_export/laya_decision.onnx    models/laya-decision-multilingual-mmbert-base-v${NEW_VER}.onnx
+```
+
+#### 5. 更新 HuggingFaceFetcher
+
+`LayaPredictor` 默认加载**最新版本的文件**(基于 `MODEL_ENCODER` + `MODEL_VERSION`)。改了文件名后,**Java 端无需重新编译**,只要改 `MODEL_VERSION` 常量:
+
+```java
+// src/main/java/com/laya4j/model/HuggingFaceFetcher.java
+public static final String MODEL_VERSION = "0.3.4-myfinetune-20240921";  // 改这里
+public static final String MODEL_FILE = "laya-decision-multilingual-" + MODEL_ENCODER + "-v" + MODEL_VERSION + ".onnx";
+```
+
+更推荐的做法:不改常量,直接用 `LayaPredictor.builder().multilingualOnnx(...).build()` 指定路径,绕过 `HuggingFaceFetcher`。
+
+#### 6. 同时更新 models/VERSION.md
+
+记录新模型的:
+- 版本号
+- 训练数据来源(标注规模、来源)
+- 训练时长 / GPU
+- 在你的 dev/test 集上的准确率 / ECE
+
+### 验证 fine-tune 效果
+
+跑 `AccuracyCompare.java` 跟 fine-tune 前对比,关注:
+- 中文威胁检测:fine-tune 前 50% → 期望 80%+
+- 退款意图:fine-tune 前 100%(已好,可保持)
+- 难度分级:fine-tune 前 0% → 期望 60%+(需要教模型"hard"长什么样)
+
+如果某一类问题 fine-tune 后仍低于 60%,说明:
+- 数据量不够(< 500 例/类)
+- 标注质量低(需要多标注员 + 一致性检查)
+- 类别不平衡(欠采样/过采样)
+
+### 量化(可选)
+
+Fine-tune 后的模型可以量化到 INT8,精度损失通常 < 2%:
+```python
+from onnxruntime.quantization import quantize_dynamic, QuantType
+quantize_dynamic(
+    "laya_decision.onnx",
+    "laya_decision_int8.onnx",
+    weight_type=QuantType.QInt8
+)
+# 1.2 GB → ~400 MB
+```
+
+Java 端加载 INT8 模型无需改动代码,ONNX Runtime 自动识别。
+
+---
+
 ## 已知限制
 
 - ONNX 模型不在 HuggingFace 官方 repo,需要在 Python 端导出一次
