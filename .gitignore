@@ -2,5 +2,6 @@ target/
 .idea/
 *.iml
 .DS_Store
-*.logmodels/laya-decision-multilingual-mmbert-base-v0.3.4-1c5edc1.onnx
+*.log
+models/laya-decision-multilingual-mmbert-base-v0.3.4-1c5edc1.onnx
 models/tokenizer/

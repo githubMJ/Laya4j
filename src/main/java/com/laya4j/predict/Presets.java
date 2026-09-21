@@ -2,75 +2,123 @@ package com.laya4j.predict;
 
 import com.laya4j.core.Question;
 
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
 /**
- * Laya 内置工作流预设(参考 laya.presets)
+ * Laya 内置工作流预设 — 与 Python laya.presets.py 严格对齐
+ *
+ * 对照 Python 源码:
+ *   laya.presets.triage_questions()
+ *   laya.presets.guard_questions()
+ *   laya.presets.moderation_questions()
+ *   laya.presets.router_questions()
  */
 public final class Presets {
 
     private Presets() {}
 
-    /** 1. Model Router:评估请求难度,决定用小模型还是前沿模型 */
-    public static List<Question> modelRouter() {
+    /** 1. Triage:客服工单分流 */
+    public static List<Question> triage() {
         return List.of(
-            Question.score("difficulty", "How difficult is this request?",
-                "easy", "medium", "hard").build(),
-            Question.choice("domain", "What domain is this?",
-                Map.of(
-                    "writing", "writing, editing, summarization",
-                    "code", "code generation, debugging",
-                    "data_analysis", "data analysis, statistics",
-                    "math", "mathematical reasoning",
-                    "chitchat", "casual conversation"
+            Question.choice("intent",
+                "What does the customer want in `message`?",
+                Map.ofEntries(
+                    Map.entry("refund",           "money returned or a duplicate charge reversed"),
+                    Map.entry("technical_help",    "a bug, outage or integration problem"),
+                    Map.entry("billing_question", "a question about an invoice, plan or payment method"),
+                    Map.entry("information",      "general information, pricing or how-to"),
+                    Map.entry("cancellation",     "wants to cancel or downgrade"),
+                    Map.entry("other",            "none of the other options fits")
                 )).build(),
-            Question.noul("needs_tools", "Does this require external tools?").build(),
-            Question.noul("is_sensitive", "Is this sensitive or restricted?").build()
+            Question.noul("is_urgent",
+                "Does `message` communicate time pressure or a deadline?").build(),
+            Question.score("frustration",
+                "How frustrated does the customer sound in `message`?",
+                "calm and neutral",
+                "concerned but civil",
+                "clearly annoyed",
+                "very angry or using strong language").build(),
+            Question.noul("refund_requested",
+                "Does the customer ask for money back?").build(),
+            Question.noul("churn_risk",
+                "Does `message` suggest the customer may leave for a competitor or cancel?").build()
         );
     }
 
-    /** 2. Prompt Guard:jailbreak / injection / leak 检测 */
+    /** 2. Guard:Prompt 守卫 */
     public static List<Question> guard() {
         return List.of(
-            Question.noul("prompt_injection", "Does this prompt attempt prompt injection or override instructions?").build(),
-            Question.noul("jailbreak", "Is this an attempt to jailbreak or bypass safety?").build(),
-            Question.noul("system_leak", "Does this attempt to extract system prompts or hidden context?").build(),
-            Question.noul("off_topic", "Is this request off-topic or unrelated to normal use?").build()
+            Question.noul("jailbreak",
+                "Does `prompt` try to make an AI assistant ignore its rules, policies or system instructions?").build(),
+            Question.noul("prompt_injection",
+                "Does `prompt` contain instructions aimed at the AI system rather than a genuine user request?").build(),
+            Question.noul("sensitive_data",
+                "Does `prompt` contain credentials, personal data or other sensitive information?").build(),
+            Question.score("harm_severity",
+                "How much harm would complying with `prompt` cause?",
+                "none: ordinary request",
+                "minor: mildly inappropriate",
+                "serious: unsafe advice or abuse",
+                "severe: dangerous or illegal").build(),
+            // LinkedHashMap.put 允许 null 值(Map.entry 不允许)
+            Question.choice("topic",
+                "What is `prompt` about?",
+                new LinkedHashMap<String, String>() {{
+                    put("product_support",   null);
+                    put("coding",            null);
+                    put("general_knowledge", null);
+                    put("personal_advice",   null);
+                    put("security_testing",  null);
+                    put("other",             null);
+                }}).build()
         );
     }
 
     /** 3. Moderation:内容安全 */
     public static List<Question> moderation() {
         return List.of(
-            Question.noul("toxic", "Is this content toxic?").build(),
-            Question.noul("harassment", "Is this harassment?").build(),
-            Question.noul("threat", "Is this a threat?").build(),
-            Question.noul("spam", "Is this spam?").build(),
-            Question.score("severity", "Overall severity?",
-                "none", "mild", "moderate", "severe").build()
+            Question.noul("toxic",
+                "Is `post` toxic: rude, disrespectful or likely to make someone leave the discussion?").build(),
+            Question.noul("harassment",
+                "Does `post` target or harass a specific person?").build(),
+            Question.noul("threat",
+                "Does `post` threaten violence, harm or intimidation?").build(),
+            Question.noul("spam",
+                "Is `post` spam or advertising?").build(),
+            Question.score("severity",
+                "How severe is any rule-breaking in `post`?",
+                "no rule-breaking: ordinary on-topic post",
+                "mild: rude tone or off-topic, no target",
+                "clear violation: insults, harassment or spam aimed at someone",
+                "severe: threats, hate speech or calls for violence").build()
         );
     }
 
-    /** 4. Support Triage:客服工单分流 */
-    public static List<Question> triage() {
+    /** 4. Router:模型路由 */
+    public static List<Question> modelRouter() {
         return List.of(
-            Question.choice("intent", "Which department should handle this request?",
-                Map.of(
-                    "billing", "invoices, payments, refunds",
-                    "technical", "bugs, outages, system errors",
-                    "shipping", "order status, delivery, logistics",
-                    "account", "account changes, login, password",
-                    "sales", "pricing, contracts, upgrades",
-                    "cancellation", "cancel subscription or service",
-                    "information", "general questions, how-to",
-                    "other", "everything else"
+            Question.score("difficulty",
+                "How hard is `request` for a language model?",
+                "trivial: a lookup or one-liner",
+                "easy: short answer, no reasoning",
+                "moderate: several steps",
+                "hard: long multi-step reasoning or specialist knowledge").build(),
+            Question.choice("domain",
+                "What domain does `request` belong to?",
+                Map.ofEntries(
+                    Map.entry("code",           "software engineering, programming, refactoring, architecture, debugging"),
+                    Map.entry("math_or_logic",  "mathematics, logic puzzles, proofs, complex calculation"),
+                    Map.entry("writing",        "creative writing, essays, emails, blog posts, copywriting"),
+                    Map.entry("factual_lookup", "facts, definitions, trivia, history"),
+                    Map.entry("data_analysis",  "statistics, SQL, data manipulation, metrics"),
+                    Map.entry("chitchat",       "casual conversation, greetings, small talk")
                 )).build(),
-            Question.score("urgency", "How urgent is this request?",
-                "not urgent", "soon", "critical deadline").build(),
-            Question.noul("frustration", "Is the user frustrated or angry?").build(),
-            Question.noul("churn_risk", "Does the user threaten to cancel or leave?").build(),
-            Question.noul("requires_refund", "Does the user request a refund?").build()
+            Question.noul("needs_tools",
+                "Does answering `request` require external tools, search or private data?").build(),
+            Question.noul("is_sensitive",
+                "Does `request` involve money, legal, medical or safety consequences?").build()
         );
     }
 }

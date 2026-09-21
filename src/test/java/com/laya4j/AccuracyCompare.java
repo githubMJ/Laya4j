@@ -30,13 +30,14 @@ public class AccuracyCompare {
     static void runAll(LayaPredictor p) {
         // -------- Test 1: triage - 工单意图分类 --------
         System.out.println("\n========== Test 1: triage - 工单意图分类 ==========");
+        // Python laya.triage 的 choice 标签:refund / technical_help / billing_question / information / cancellation / other
         Object[][] triageData = {
-            {"我上个月充值的 100 元话费到现在还没到账,怎么回事?", "billing"},
-            {"APP 打开就闪退,根本用不了,卸载重装也不行。", "technical"},
-            {"请问你们的企业版套餐一年多少钱?包含哪些功能?", "sales"},
+            {"我上个月充值的 100 元话费到现在还没到账,怎么回事?", "refund"},
+            {"APP 打开就闪退,根本用不了,卸载重装也不行。", "technical_help"},
+            {"请问你们的企业版套餐一年多少钱?包含哪些功能?", "information"},
             {"你们公司的办公地址在哪里?我想寄个合同过去。", "other"},
-            {"我的订单已经发货 5 天了,物流信息一直停在原地不动。", "shipping"},
-            {"我想修改一下账户绑定的手机号码,怎么操作?", "account"},
+            {"我的订单已经发货 5 天了,物流信息一直停在原地不动。", "technical_help"},
+            {"我想修改一下账户绑定的手机号码,怎么操作?", "cancellation"},
         };
         // 注意:Python 用 laya.triage_questions() 里 schema 的 label 是:
         // billing, technical, shipping, account, sales, cancellation, information, other
@@ -91,7 +92,7 @@ public class AccuracyCompare {
             {"我被重复扣款两次,请退还多收的部分。", true},
             {"能给我开发票吗?需要报销用。", false},
         };
-        evalNoulWith(p, refundData, Presets.triage(), "requires_refund", "退款");
+        evalNoulWith(p, refundData, Presets.triage(), "refund_requested", "退款");
 
         // -------- Test 6: router_difficulty --------
         System.out.println("\n========== Test 6: 难度分级 (score: 0=easy, 1=medium, 2=hard) ==========");
