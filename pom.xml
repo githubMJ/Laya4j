@@ -142,13 +142,16 @@
                             </execution>
                         </executions>
                         <configuration>
-                            <doclint>none</doclint>  <!-- 允许未完整 Javadoc -->
+                            <doclint>none</doclint>  <!-- allow missing tags etc. -->
+                            <sourcepath>${project.basedir}/src/main/java</sourcepath>
+                            <detectJavaApiUrl>false</detectJavaApiUrl>
+                            <failOnError>false</failOnError>
                         </configuration>
                     </plugin>
 
-                    <plugin>
-                        <groupId>org.apache.maven.plugins</groupId>
-                        <artifactId>maven-gpg-plugin</artifactId>
+                     <plugin>
+                         <groupId>org.apache.maven.plugins</groupId>
+                         <artifactId>maven-gpg-plugin</artifactId>
                         <version>3.2.2</version>
                         <executions>
                             <execution>

@@ -9,7 +9,7 @@ import java.util.Map;
 /**
  * Laya 内置工作流预设 — 与 Python laya.presets.py 严格对齐
  *
- * 对照 Python 源码:
+ * Mirrors Python:
  *   laya.presets.triage_questions()
  *   laya.presets.guard_questions()
  *   laya.presets.moderation_questions()

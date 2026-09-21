@@ -8,12 +8,12 @@ import java.util.Map;
 /**
  * Unicode 脚本检测器 - 复刻 laya.lang 的功能
  *
- * 输入:任意文本
- * 输出:
- *   - dominantScript: 主导脚本(han / kana / hangul / latin / cyrillic / arabic)
- *   - fractions: 各脚本占比
- *   - language: 推测的具体语种(en/de/es/fr/ja/zh/ko/ru/ar/...)
- *   - isEnglish: 是否判定为英文
+ * Inputs:任意文本
+ * Outputs:
+ *   - dominantScript: dominant script (han / kana / hangul / latin / cyrillic / arabic)
+ *   - fractions: per-script fractions
+ *   - language: detected language code (en/de/es/fr/ja/zh/ko/ru/ar/...)
+ *   - isEnglish: whether detected as English
  */
 public class ScriptDetector {
 

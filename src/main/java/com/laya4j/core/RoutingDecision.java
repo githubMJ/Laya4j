@@ -1,14 +1,14 @@
 package com.laya4j.core;
 
 /**
- * 路由决策元数据
+ * Routing decision metadata
  *
- * 对应 laya Python 端 res["routing"] = {"model": ..., "repo": ..., "reason": ...}
+ * Mirrors Python: res['routing'] = {model: ..., repo: ..., reason: ...}
  *
- * model 取值:
- *   "english"         → 用 laya (ModernBERT-large, 英文)
- *   "multilingual"    → 用 laya-multilingual (mmBERT-base, 100+ 语言)
- *   "typed-decisions" → 用 laya-typed-decisions (ModernBERT-large)
+ * model values:
+ *   "english"         → use laya (ModernBERT-large, English)
+ *   "multilingual"    → use laya-multilingual (mmBERT-base, 100+ langs)
+ *   "typed-decisions" → use laya-typed-decisions (ModernBERT-large)
  */
 public record RoutingDecision(
         String model,
@@ -16,7 +16,15 @@ public record RoutingDecision(
         String reason,
         DetectionProfile profile
 ) {
-    /** 路由检测到的语言画像 */
+    /**
+     * Detected language profile
+     *
+     * @param dominantScript dominant Unicode script (han / kana / hangul / latin / cyrillic / arabic)
+     * @param latinFraction  Latin character fraction ∈ [0, 1]
+     * @param nonLatinFraction non-Latin character fraction ∈ [0, 1]
+     * @param language       detected language code (zh / en / ja / ko / ru / ar / de / es / ...)
+     * @param isEnglish      whether treated as English (affects english checkpoint selection)
+     */
     public record DetectionProfile(
             String dominantScript,
             double latinFraction,

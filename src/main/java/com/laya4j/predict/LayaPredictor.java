@@ -15,7 +15,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Laya 顶层入口 - 包装 LayaRouter
+ * Laya top-level entry - wraps LayaRouter
  */
 public class LayaPredictor implements AutoCloseable {
 

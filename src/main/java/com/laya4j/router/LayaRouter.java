@@ -10,19 +10,19 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Laya 多 checkpoint 路由器
+ * Laya multi-checkpoint router
  *
- * 复刻 laya.Router:
- *   - 检测输入脚本/语言
- *   - 选对应 checkpoint
- *     * 非拉丁/英文外 → multilingual
- *     * 拉丁 + 英文 → english
- *     * 拉丁 + 非英文(德/法/西/葡等)→ multilingual
- *   - 返回 Decision map + RoutingDecision
+ * Ports laya.Router:
+ *   - detect input script/language
+ *   - pick the matching checkpoint
+ *     * non-Latin / non-English → multilingual
+ *     * Latin + English → english
+ *     * Latin + non-English (de/fr/es/pt/...) → multilingual
+ *   - return Decision map + RoutingDecision
  *
  * 单个 model 也可当作 router(永远用同一个 checkpoint)
  *
- * 用法:
+ * Usage:
  *   LayaRouter router = new LayaRouter.Builder()
  *       .multilingual(multilingualModel)
  *       .english(englishModel)
@@ -50,7 +50,7 @@ public class LayaRouter {
         }
     }
 
-    /** 单条推理入口 */
+    /** Single-prompt inference entry */
     public Result predict(String state, List<Question> questions) {
         if (state == null) state = "";
         ScriptDetector.DetectionResult det = detector.detect(state);
@@ -73,7 +73,7 @@ public class LayaRouter {
         return new Result(answers, routing);
     }
 
-    /** 仅路由检查(不跑 forward) */
+    /** Routing-only check (no forward) */
     public RoutingDecision route(String state) {
         ScriptDetector.DetectionResult det = detector.detect(state);
         LayaOnnxModel model = selectModel(det);
@@ -119,7 +119,7 @@ public class LayaRouter {
         return "Latin script but language looks like '" + det.language() + "', not English";
     }
 
-    /** 路由 + 决策的完整结果 */
+    /** Combined routing + decision result */
     public record Result(Map<String, Decision> answers, RoutingDecision routing) {}
 
     public static class Builder {

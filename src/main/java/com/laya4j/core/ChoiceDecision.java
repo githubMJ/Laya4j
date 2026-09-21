@@ -4,7 +4,9 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
- * CHOICE 类型结果:从候选标签中选一个,带每选项的概率分布
+ * CHOICE result: pick one from candidate labels with full probability distribution
+ *
+ * Returned by LayaOnnxModel.predict() when qtype=CHOICE.
  */
 public final class ChoiceDecision implements Decision {
 
@@ -12,6 +14,11 @@ public final class ChoiceDecision implements Decision {
     private final double confidence;
     private final Map<String, Double> probabilities;
 
+    /**
+     * @param choice        top-probability label
+     * @param confidence   max(P(choice_i)) ∈ [0.5, 1.0]
+     * @param probabilities per-option P(label → P, sums to 1.0, immutable copy)
+     */
     public ChoiceDecision(String choice, double confidence,
                           Map<String, Double> probabilities) {
         this.choice = choice;
@@ -19,15 +26,20 @@ public final class ChoiceDecision implements Decision {
         this.probabilities = probabilities;
     }
 
+    /** @return top-probability label */
     public String choice() { return choice; }
 
+    /** {@inheritDoc} */
     @Override
     public double confidence() { return confidence; }
 
+    /** {@inheritDoc} */
     @Override
     public DecisionType type() { return DecisionType.CHOICE; }
 
-    /** 每选项的概率(label -> P,加和 = 1) */
+    /**
+     * @return per-option probabilities (label → P, sums to 1.0); defensive copy
+     */
     public Map<String, Double> probabilities() {
         return new LinkedHashMap<>(probabilities);
     }

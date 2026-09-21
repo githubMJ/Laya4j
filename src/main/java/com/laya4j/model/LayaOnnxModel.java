@@ -25,20 +25,20 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Laya multilingual DecisionModel - ONNX Runtime Java 推理
+ * Laya multilingual DecisionModel - ONNX Runtime Java inference
  *
- * 单个 checkpoint 包装(不含 Router)。如果需要多 checkpoint 自动路由,用 LayaRouter。
+ * Wraps a single checkpoint (no router). For multi-checkpoint auto-routing, use LayaRouter.
  *
- * 用法:
+ * Usage:
  *   LayaOnnxModel model = new LayaOnnxModel(onnxPath, tokenizerDir);
- *   Map<String, Decision> results = model.predict(state, questions);
+ *   Map{@code <String, Decision>} results = model.predict(state, questions);
  *
- * 输入:
- *   - state: 任意 String / 序列化的 JSON / Map(最终都序列化成字符串)
- *   - questions: List<Question>(同一次推理里所有问题共享同一个 state)
+ * Inputs:
+ *   - state: any String / serialized JSON / Map (eventually serialized to a String)
+ *   - questions: List{@code <Question>} (all questions share the same state in one inference)
  *
- * 输出:
- *   - Map<questionName, Decision>(Decision 是 ChoiceDecision / ScoreDecision / NoulDecision)
+ * Outputs:
+ *   - Map{@code <questionName, Decision>} (Decision is ChoiceDecision / ScoreDecision / NoulDecision)
  */
 public class LayaOnnxModel implements AutoCloseable {
 
@@ -52,10 +52,10 @@ public class LayaOnnxModel implements AutoCloseable {
     private final int headMaxLen;
 
     /**
-     * @param onnxPath      ONNX 模型路径(必须)
-     * @param tokenizerDir  tokenizer 目录(含 tokenizer.json + tokenizer_config.json)
-     * @param modelId       模型标识("multilingual"等),会出现在 RoutingDecision 里
-     * @param config        LayaConfig(用 defaults() 即可)
+     * @param onnxPath      ONNX model path (required)
+     * @param tokenizerDir  tokenizer dir (containing tokenizer.json + tokenizer_config.json)
+     * @param modelId       model identifier ("multilingual", etc.), appears in RoutingDecision
+     * @param config        LayaConfig (defaults() is sufficient)
      */
     public LayaOnnxModel(Path onnxPath, Path tokenizerDir, String modelId, LayaConfig config) {
         if (onnxPath == null || !onnxPath.toFile().exists()) {
@@ -88,10 +88,10 @@ public class LayaOnnxModel implements AutoCloseable {
     }
 
     /**
-     * 单次推理:输入 state + questions,返回每个 question 的 Decision
+     * Single inference: input state + questions, return Decision per question
      *
-     * @param state     任意字符串(支持 JSON)
-     * @param questions 一次推理的所有问题(共享同一个 ONNX forward)
+     * @param state     any string (JSON supported)
+     * @param questions all questions of one inference (share one ONNX forward)
      */
     public Map<String, Decision> predict(String state, List<Question> questions) {
         if (questions == null || questions.isEmpty()) {

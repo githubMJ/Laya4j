@@ -1,16 +1,27 @@
 package com.laya4j.core;
 
 /**
- * Laya 模型全局配置
+ * Laya model global configuration
  *
- * 对应 rl_agent_config.json 的字段(基座默认值)
+ * Mirrors rl_agent_config.json (base defaults)
+ *
+ * @param maxLen      max sequence length (multilingual=1024, typed-decisions=1024)
+ * @param headMaxLen  schema portion max length (default 256)
+ * @param maxPrefixes max schema prefixes
+ * @param temperature [choice, score, noul] temperatures (untuned [1.0, 1.0, 1.0])
  */
 public record LayaConfig(
-        int maxLen,        // 最大序列长度(multilingual=1024, typed-decisions=1024)
-        int headMaxLen,    // schema 部分的最大长度(默认 256)
-        int maxPrefixes,   // schema prefix 最大个数
-        double[] temperature  // [choice, score, noul] 各自的温度
+        int maxLen,
+        int headMaxLen,
+        int maxPrefixes,
+        double[] temperature
 ) {
+    /**
+     * Base default config (multilingual):
+     *   maxLen=1024, headMaxLen=256, maxPrefixes=6, temperature=[1, 1, 1]
+     *
+     * @return default config instance
+     */
     public static LayaConfig defaults() {
         return new LayaConfig(1024, 256, 6, new double[]{1.0, 1.0, 1.0});
     }

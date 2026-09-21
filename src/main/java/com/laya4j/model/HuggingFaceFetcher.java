@@ -15,14 +15,14 @@ import java.time.Duration;
 import java.util.Set;
 
 /**
- * Laya 权重获取器
+ * Laya weight fetcher
  *
  * 查找顺序(优先级从高到低):
- *   1. 项目内 models/ 目录(打包好的 ONNX,带版本号)
+ *   1. Project-local models/ directory(打包好的 ONNX,带版本号)
  *   2. ~/.cache/laya/ 本地缓存(自动或手动放置)
  *   3. HuggingFace Hub 拉取(网络下载,公开模型无需 token)
  *
- * 用法:
+ * Usage:
  *   var f = HuggingFaceFetcher.fetchDefault(false);
  *   -> f.tokenizerDir() : tokenizer 文件目录
  *   -> f.onnxFile()     : ONNX 模型文件
@@ -235,13 +235,13 @@ public class HuggingFaceFetcher {
                 Files.size(outFile) / 1024 / 1024, secs, mbps);
     }
 
-    /** 项目内 models/ 目录 */
+    /** Project-local models/ directory */
     public static Path projectModelsDir() {
         // cwd 是项目根(有 pom.xml)
         return Paths.get("").toAbsolutePath().resolve("models");
     }
 
-    /** 本地缓存目录 */
+    /** Local cache directory */
     public static Path defaultCacheDir() {
         return Paths.get(System.getProperty("user.home"), ".cache", "laya");
     }

@@ -1,28 +1,44 @@
 package com.laya4j.core;
 
 /**
- * NOUL 类型结果:校准的 P(true) ∈ [0, 1]
+ * NOUL result: calibrated P(true) ∈ [0, 1]
+ *
+ * Returned by LayaOnnxModel.predict() when qtype=NOUL.
+ *
+ * markers[0]=false (default 'no, the statement does not hold')
+ * markers[1]=true (default 'yes, the statement holds')
  */
 public final class NoulDecision implements Decision {
 
-    private final double probability;     // P(true)
-    private final double confidence;      // max(p, 1-p)
+    private final double probability;
+    private final double confidence;
 
+    /**
+     * @param probability P(true) ∈ [0, 1] (softmax-normalized)
+     * @param confidence  max(P(true), P(false))
+     */
     public NoulDecision(double probability, double confidence) {
         this.probability = probability;
         this.confidence = confidence;
     }
 
+    /** @return P(true) ∈ [0, 1] */
     public double probability() { return probability; }
 
-    /** 阈值判断:true / false */
+    /**
+     * Threshold to boolean
+     * @param threshold classification threshold, typically 0.5
+     * @return probability >= threshold
+     */
     public boolean asBoolean(double threshold) {
         return probability >= threshold;
     }
 
+    /** {@inheritDoc} */
     @Override
     public double confidence() { return confidence; }
 
+    /** {@inheritDoc} */
     @Override
     public DecisionType type() { return DecisionType.NOUL; }
 

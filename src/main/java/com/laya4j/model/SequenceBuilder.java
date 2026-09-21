@@ -11,30 +11,30 @@ import java.util.Arrays;
 import java.util.List;
 
 /**
- * Laya sequence builder - 把 state + question 编码成 ONNX 输入
+ * Laya sequence builder - encodes state + question into ONNX inputs
  *
- * 严格对齐 laya.common.build_sequence 的 Python 实现:
- *   Format: [CLS] <type> instructions [SEP] [MASK] opt0 [MASK] opt1 ... [SEP] state [SEP]
- *   Markers: 每个 [MASK] 在序列中的位置
+ * Strictly mirrors laya.common.build_sequence:
+ *   Format: [CLS] {@code <type>} instructions [SEP] [MASK] opt0 [MASK] opt1 ... [SEP] state [SEP]
+ *   Markers: position of each [MASK] in the sequence
  *
- * mmBERT 特殊 token:
- *   <bos> = 2 (CLS)
- *   <eos> = 1 (SEP)
- *   <mask> = 4 (MASK)
- *   <pad> = 0
+ * mmBERT special tokens:
+ *   {@code <bos>} = 2 (CLS)
+ *   {@code <eos>} = 1 (SEP)
+ *   {@code <mask>} = 4 (MASK)
+ *   {@code <pad>} = 0
  *
- * 已知 DJL 与 Python 行为差异:
- *   DJL 在 optAddSpecialTokens(false) 下,某些边界会保留孤立 235248 (▁);
- *   Python 的 transformers 会把它合并到下一个 token。
- *   但 mmBERT 实际上对 235248 是否合并取决于位置,所以为了完全对齐
- *   Python 端 batch=1 输出,我们选择 **保留所有 235248**(不过滤),
- *   这样 ids 与 Python 完全相同,ONNX 输出比特级一致。
+ * Known DJL vs Python tokenizer differences:
+ *   DJL with optAddSpecialTokens(false) keeps isolated 235248 (▁) on some boundaries;
+ *   Python's transformers merges it into the next token.
+ *   But mmBERT's actual merging of 235248 is position-dependent; for full alignment
+ *   with Python batch=1 output we choose to **keep all 235248** (no filter),
+ *   so ids are byte-equal with Python and ONNX output is bit-equal.
  *
- *   实测验证(对比 Python transformers):
- *     Case 1 (中文):     完全一致 0.0000 差异
- *     Case 2 (英文):     完全一致 0.0000 差异
- *     Case 3 (中文短):   完全一致 0.0000 差异
- *     Case 4 (英文带数字):完全一致 0.0000 差异
+ *   Empirically verified vs Python transformers:
+ *     Case 1 (Chinese):   exact 0.0000 diff
+ *     Case 2 (English):   exact 0.0000 diff
+ *     Case 3 (Chinese short): exact 0.0000 diff
+ *     Case 4 (English w/ digits): exact 0.0000 diff
  */
 class SequenceBuilder {
 
@@ -55,7 +55,7 @@ class SequenceBuilder {
         this.headMaxLen = headMaxLen;
     }
 
-    /** 编码单个 question,返回 ids + marker 位置 */
+    /** Encode one question, return ids + marker positions */
     BuiltSequence build(String state, Question q) {
         // 1. head: "<type> question: <ins>"
         String headText = q.type().name().toLowerCase() + " question: " + q.instructions();
@@ -137,11 +137,11 @@ class SequenceBuilder {
     }
 
     /**
-     * 编码不带特殊 token 的文本
+     * Encode text without adding special tokens
      *
-     * 关键:不剥首尾 CLS/SEP(因为 DJL 在 add_special_tokens=false 下通常不会添加,
-     * 偶尔会加但 Python 端对 "true:" 边界会合并 235248,与 Python 完全一致
-     * 的行为是:保留所有 token,不剥不并)。
+     * Key: do not strip leading/trailing CLS/SEP (DJL usually does not add them with add_special_tokens=false),
+     * occasionally does, but Python merges 235248 at the 'true:' boundary; full Python alignment
+     * is achieved by keeping all tokens (no strip, no merge).
      */
     private long[] encodeNoSpecial(String text) {
         Encoding e = tokenizer.encode(text);

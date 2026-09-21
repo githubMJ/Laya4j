@@ -8,12 +8,12 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Laya 性能基准测试
+ * Laya performance benchmark
  *
- * 用法:
+ * Usage:
  *   Benchmark.run(predictor, questions, n=100);
  *
- * 输出:p50 / p95 / p99 / mean / QPS / min / max
+ * Outputs:p50 / p95 / p99 / mean / QPS / min / max
  */
 public class Benchmark {
 
@@ -36,7 +36,7 @@ public class Benchmark {
     }
 
     /**
-     * 压测:同一组 questions 跑 n 次
+     * Stress test: same questions run n times
      */
     public static Result run(LayaPredictor p, List<Question> questions, String state, int n) {
         // warmup
@@ -64,7 +64,7 @@ public class Benchmark {
     }
 
     /**
-     * 对比不同 state 长度的延迟
+     * Compare latency across state lengths
      */
     public static java.util.Map<String, Result> varyingLength(LayaPredictor p, List<Question> questions,
                                                               java.util.Map<String, String> states, int perStateN) {
@@ -76,7 +76,7 @@ public class Benchmark {
     }
 
     /**
-     * 对比不同 question 数量的延迟
+     * Compare latency across question-set sizes
      */
     public static java.util.Map<Integer, Result> varyingQuestionCount(
             LayaPredictor p, String state,
