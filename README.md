@@ -161,32 +161,7 @@ Map<String, Decision> r = p.predict(state, List.of(refund, urgency));
 
 或 clone 整个 Laya4j 子模块到你的项目里,然后 `mvn install` 引入。
 
-### 5. Spring Boot 集成示例
-
-```java
-@Configuration
-public class LayaConfig {
-    @Bean
-    public LayaPredictor layaPredictor() throws Exception {
-        var f = HuggingFaceFetcher.fetchDefault(false);
-        return LayaPredictor.single(f.onnxFile(), f.tokenizerDir(), "multilingual");
-    }
-}
-
-@RestController
-public class TriageController {
-    @Autowired LayaPredictor predictor;
-
-    @PostMapping("/triage")
-    public Map<String, Decision> triage(@RequestBody Map<String, String> req) {
-        return predictor.predict(req.get("body"), Presets.triage());
-    }
-}
-```
-
-LayaPredictor 线程安全(底层 ONNX Session 是 immutable),可注册为 singleton。
-
-### 6. 批量推理
+### 5. 批量推理
 
 一次 `predict` 调用只做一次 forward。如需批量(吞吐量敏感场景),可以构造 batch
 输入并调 `LayaOnnxModel.predict` 内部循环。
@@ -201,7 +176,7 @@ List<Map<String, Decision>> results = tickets.stream()
 高级做法:把多条 ticket 合并成一个 state(拼接 state 字段 + 不同 question id),
 但需要修改 SequenceBuilder,暂不内置。
 
-### 7. 性能调优
+### 6. 性能调优
 
 **单线程** (~10 QPS on M4 CPU):
 - 默认 `intraOpNumThreads = cores/2`,已为大多数场景调好
@@ -226,7 +201,7 @@ List<Future<Map<String, Decision>>> futures = tickets.stream()
 ```
 GPU 后端在 T4 上 ~10× 加速(M4 Pro CPU 上 ~3× 加速)。
 
-### 8. 生产部署清单
+### 7. 生产部署清单
 
 - [ ] 模型文件部署到 `models/` 或 `~/.cache/laya/`
 - [ ] Java 17+ JRE 运行时环境(避免 JDK 启动开销)
