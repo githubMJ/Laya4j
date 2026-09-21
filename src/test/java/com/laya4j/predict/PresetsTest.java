@@ -15,7 +15,7 @@ class PresetsTest {
         assertNotNull(qs);
         assertTrue(qs.size() >= 3);
         assertTrue(qs.stream().anyMatch(q -> q.name().equals("intent")));
-        assertTrue(qs.stream().anyMatch(q -> q.name().equals("urgency")));
+        assertTrue(qs.stream().anyMatch(q -> q.name().equals("is_urgent")));
         assertTrue(qs.stream().anyMatch(q -> q.name().equals("churn_risk")));
     }
 
