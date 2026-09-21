@@ -5,3 +5,6 @@ target/
 *.log
 models/laya-decision-multilingual-mmbert-base-v0.3.4-1c5edc1.onnx
 models/tokenizer/
+
+# 本地对比脚本,不推仓库
+compare_accuracy.py
