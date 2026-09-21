@@ -12,6 +12,28 @@
 
     <name>Laya4j</name>
     <description>Java SDK for Laya System 1 decision models (multilingual, ONNX Runtime)</description>
+    <url>https://github.com/your-org/Laya4j</url>
+
+    <licenses>
+        <license>
+            <name>Apache License, Version 2.0</name>
+            <url>https://www.apache.org/licenses/LICENSE-2.0.txt</url>
+        </license>
+    </licenses>
+
+    <developers>
+        <developer>
+            <id>your-id</id>
+            <name>Your Name</name>
+            <email>your.email@example.com</email>
+        </developer>
+    </developers>
+
+    <scm>
+        <connection>scm:git:git://github.com/your-org/Laya4j.git</connection>
+        <developerConnection>scm:git:ssh://git@github.com:your-org/Laya4j.git</developerConnection>
+        <url>https://github.com/your-org/Laya4j</url>
+    </scm>
 
     <properties>
         <maven.compiler.source>17</maven.compiler.source>
@@ -20,31 +42,27 @@
         <junit.version>5.10.2</junit.version>
         <onnxruntime.version>1.30.0</onnxruntime.version>
         <djl.version>0.30.0</djl.version>
+        <!-- Skip deploy of test/sample resources to Central -->
+        <skipDeployTests>true</skipDeployTests>
     </properties>
 
     <dependencies>
-        <!-- ONNX Runtime Java (CPU) -->
         <dependency>
             <groupId>com.microsoft.onnxruntime</groupId>
             <artifactId>onnxruntime</artifactId>
             <version>${onnxruntime.version}</version>
         </dependency>
-
-        <!-- DJL HuggingFace tokenizer (mmBERT 兼容) -->
         <dependency>
             <groupId>ai.djl.huggingface</groupId>
             <artifactId>tokenizers</artifactId>
             <version>${djl.version}</version>
         </dependency>
-
-        <!-- SLF4J (DJL 需要,但我们不要 log 输出) -->
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-nop</artifactId>
             <version>2.0.13</version>
         </dependency>
 
-        <!-- Test -->
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter</artifactId>
@@ -79,5 +97,102 @@
                 </configuration>
             </plugin>
         </plugins>
+
+        <!-- 不打包 1.2 GB ONNX 模型到 jar(模型太大,单独放 GitHub Release / HF Hub) -->
+        <resources>
+            <resource>
+                <directory>src/main/resources</directory>
+                <excludes>
+                    <exclude>models/**</exclude>
+                </excludes>
+            </resource>
+        </resources>
     </build>
+
+    <profiles>
+        <!-- GPG 签名 profile(发布到 Maven Central 需要所有 jar 都签名) -->
+        <profile>
+            <id>release</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-source-plugin</artifactId>
+                        <version>3.3.0</version>
+                        <executions>
+                            <execution>
+                                <id>attach-sources</id>
+                                <goals>
+                                    <goal>jar-no-fork</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-javadoc-plugin</artifactId>
+                        <version>3.6.3</version>
+                        <executions>
+                            <execution>
+                                <id>attach-javadocs</id>
+                                <goals>
+                                    <goal>jar</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                        <configuration>
+                            <doclint>none</doclint>  <!-- 允许未完整 Javadoc -->
+                        </configuration>
+                    </plugin>
+
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-gpg-plugin</artifactId>
+                        <version>3.2.2</version>
+                        <executions>
+                            <execution>
+                                <id>sign-artifacts</id>
+                                <phase>verify</phase>
+                                <goals>
+                                    <goal>sign</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                        <configuration>
+                            <!-- 本地 GPG key 必须在 ~/.gnupg/ -->
+                            <keyname>${gpg.keyname}</keyname>
+                            <passphraseServerId>${gpg.passphrase}</passphraseServerId>
+                        </configuration>
+                    </plugin>
+
+                    <!-- 中央发布 - 用新的 central-publishing-maven-plugin(2024 推荐) -->
+                    <plugin>
+                        <groupId>org.sonatype.central</groupId>
+                        <artifactId>central-publishing-maven-plugin</artifactId>
+                        <version>0.4.0</version>
+                        <extensions>true</extensions>
+                        <configuration>
+                            <publishingServerId>central</publishingServerId>
+                            <autoPublish>true</autoPublish>
+                            <waitUntil>published</waitUntil>
+                            <deploymentName>${project.name}-${project.version}</deploymentName>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
+
+    <!-- 配置发布仓库(只是 metadata,不发布 ONNX 模型) -->
+    <distributionManagement>
+        <snapshotRepository>
+            <id>central</id>
+            <url>https://central.sonatype.com/repository/maven-snapshots/</url>
+        </snapshotRepository>
+        <repository>
+            <id>central</id>
+            <url>https://central.sonatype.com/repository/maven-releases/</url>
+        </repository>
+    </distributionManagement>
 </project>
