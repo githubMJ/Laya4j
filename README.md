@@ -21,7 +21,7 @@ r.forEach((k, v) -> System.out.println(k + ": " + v));
 <dependency>
     <groupId>com.laya4j</groupId>
     <artifactId>laya4j</artifactId>
-    <version>0.1.0</version>
+    <version>0.2.0</version>
 </dependency>
 ```
 
@@ -33,14 +33,17 @@ Requires **Java 17+**. Maven Central publishing guide: [MAVEN_CENTRAL_DEPLOY.md]
 
 ```bash
 # 1. Clone
-git clone https://github.com/your-org/Laya4j.git
+git clone https://github.com/laya4j/Laya4j.git
 cd Laya4j
 
-# 2. Build & test (57 tests)
+# 2. Build & test
 mvn test
 
-# 3. Run demo (5 end-to-end tests)
-mvn exec:java
+# 3. Run end-to-end demo (5 demos, includes Python alignment check)
+mvn -Pdemo test-compile exec:java
+
+# 4. Snake game AI demo (see below)
+mvn -Pdemo test-compile exec:java -Dexec.mainClass=com.laya4j.examples.SnakeDemo
 ```
 
 The demo includes a Python-alignment check (4 fixed cases, expected diff = 0.0000).
@@ -104,6 +107,31 @@ RoutingDecision rd = p.route(state);
 System.out.println(rd.model() + " / " + rd.profile().language());
 ```
 
+### Custom inference backend (`LayaModel` interface)
+
+`LayaPredictor` / `LayaRouter` are programmed against the `LayaModel` interface
+(default impl: `LayaOnnxModel`). Plug in a remote service, quantized runtime, or test stub:
+
+```java
+LayaPredictor p = LayaPredictor.builder().multilingual(myLayaModel).build();
+```
+
+### Snake game AI demo
+
+`examples/SnakeDemo` drives a snake with one forward pass per step:
+1 `choice` (next direction) + 4 `noul` (is each direction fatal?), consumed as
+"model choice first, game-rule safety fallback second":
+
+```bash
+# real Laya model (auto-resolved from models/ or HF Hub)
+mvn -Pdemo test-compile exec:java -Dexec.mainClass=com.laya4j.examples.SnakeDemo
+
+# heuristic mock model (implements LayaModel, no 1.2 GB weights needed)
+mvn -Pdemo test-compile exec:java -Dexec.mainClass=com.laya4j.examples.SnakeDemo -Dexec.args="--mock"
+```
+
+Flags: `--steps N` `--size N` `--seed S` `--delay MS`.
+
 ---
 
 ## Model
@@ -136,15 +164,15 @@ For fine-tuning on your domain: see [Fine-Tuning](#fine-tuning) below.
 | Single predict (5 questions) p50 | 148 ms |
 | Throughput | 6.3 QPS |
 
-For higher throughput use NVIDIA GPU + `onnxruntime-gpu` (5-10x faster), or run multiple JVM instances.
+For higher throughput use NVIDIA GPU + `onnxruntime-gpu` or run multiple JVM instances.
 
 ---
 
 ## Tests
 
 ```bash
-mvn test                    # 57 unit tests
-mvn exec:java               # 5 end-to-end demos (includes Python alignment check)
+mvn test                                      # unit tests
+mvn -Pdemo test-compile exec:java             # 5 end-to-end demos (includes Python alignment check)
 ```
 
 **Python alignment** (Test 5 of demo, 4 fixed cases):
@@ -156,23 +184,9 @@ java=0.0158 py=0.0158 diff=0.0000  Where is my order #1234
 → 4/4 bit-equal with Python
 ```
 
----
-
 ## Fine-Tuning
 
-Base `laya-multilingual` is general; **production deployments should fine-tune** because:
-
-| Task | Base accuracy |
-|---|---|
-| Refund detection | 100% (good) |
-| Prompt injection | 100% (good) |
-| Triage intent | 83% |
-| Toxicity detection | 83% |
-| Threat detection | **50%** (needs fine-tune) |
-| Difficulty grading | **0%** (needs fine-tune) |
-| Domain detection | **40%** (needs fine-tune) |
-
-Fine-tune in Python using [Laya's Kaggle notebook](https://github.com/NandhaKishorM/laya/blob/main/notebooks/laya_finetune_typed_decisions_2xT4_kaggle.ipynb) (RLCD algorithm, ~4-5h on 2xT4), then re-export and place the new ONNX in `models/`. Update `HuggingFaceFetcher.MODEL_VERSION` to point at it.
+For domain-specific deployments, fine-tune on your own labeled data using the [Laya Kaggle notebook](https://github.com/NandhaKishorM/laya/blob/main/notebooks/laya_finetune_typed_decisions_2xT4_kaggle.ipynb) (RLCD algorithm, ~4-5h on 2xT4). Re-export the ONNX to `models/` and update `HuggingFaceFetcher.MODEL_VERSION`.
 
 ---
 
@@ -182,31 +196,34 @@ Fine-tune in Python using [Laya's Kaggle notebook](https://github.com/NandhaKish
 mvn clean deploy -P release
 ```
 
-First-time setup: register at [Sonatype OSSRH](https://issues.sonatype.org/), generate a GPG key, and configure `~/.m2/settings.xml`. Full guide: [MAVEN_CENTRAL_DEPLOY.md](MAVEN_CENTRAL_DEPLOY.md).
-
-Note: the 1.2 GB ONNX model is **not** published to Maven Central (file size limit + bandwidth). Models are distributed separately via HuggingFace Hub or `models/` in the project.
-
----
-
-## Project Structure
-
 ```
 Laya4j/
-├── pom.xml                          # Java 17 + ORT 1.30.0 + DJL 0.30 + JUnit 5
+├── pom.xml                          # Java 17 + ONNX Runtime 1.30.0 + DJL 0.30 + JUnit 5
 ├── README.md
 ├── MAVEN_CENTRAL_DEPLOY.md
 ├── CHANGELOG.md
-├── models/
+├── models/                          # ONNX weights (NOT in git; see MAVEN_CENTRAL_DEPLOY.md)
 │   ├── laya-decision-multilingual-mmbert-base-v0.3.4-1c5edc1.onnx  (1.2 GB)
 │   ├── tokenizer/                                                   (33 MB)
 │   └── VERSION.md
-├── src/main/java/com/laya4j/
-│   ├── core/        (9 files)   Question, Decision (sealed), DecisionType, ...
-│   ├── model/       (3 files)   LayaOnnxModel, SequenceBuilder, HuggingFaceFetcher
-│   ├── router/      (2 files)   ScriptDetector, LayaRouter
-│   ├── predict/     (2 files)   LayaPredictor, Presets
-│   └── benchmark/   (1 file)    Benchmark
-└── src/test/java/com/laya4j/      (57 unit tests)
+└── src/
+    ├── main/java/com/laya4j/
+    │   ├── core/        Question, Decision, DecisionType, RoutingDecision, LayaConfig, exceptions
+    │   ├── model/       LayaModel, LayaOnnxModel, SequenceBuilder, HuggingFaceFetcher
+    │   ├── router/      ScriptDetector, LayaRouter
+    │   ├── predict/     LayaPredictor, Presets
+    │   └── benchmark/   Benchmark
+    └── test/java/com/laya4j/        # 57 unit tests
+    ```
+│   └── VERSION.md
+├── src/main/java/com/laya4j/        # published library
+│   ├── core/        Question, Decision (sealed), DecisionType, RoutingDecision, LayaConfig, exception hierarchy
+│   ├── model/       LayaModel (interface), LayaOnnxModel, SequenceBuilder, HuggingFaceFetcher
+│   ├── router/      ScriptDetector, LayaRouter
+│   └── predict/     LayaPredictor, Presets
+└── src/test/java/com/laya4j/
+    ├── (unit tests)
+    └── examples/    QuickStartDemo, SnakeDemo, Benchmark   # not in the published jar
 ```
 
 ---
@@ -217,8 +234,4 @@ Laya4j/
 - **Python ONNX model source**: [`Laya/export_onnx.py`](../Laya/export_onnx.py) (sibling project)
 - **HuggingFace model**: [convaiinnovations/laya](https://huggingface.co/convaiinnovations/laya)
 
----
 
-## License
-
-Apache 2.0 (matches upstream Laya).
