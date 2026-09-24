@@ -6,13 +6,13 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>com.laya4j</groupId>
-    <artifactId>laya4j</artifactId>
-    <version>0.1.0</version>
-    <packaging>jar</packaging>
+    <artifactId>laya4j-parent</artifactId>
+    <version>0.2.0</version>
+    <packaging>pom</packaging>
 
-    <name>Laya4j</name>
-    <description>Java SDK for Laya System 1 decision models (multilingual, ONNX Runtime)</description>
-    <url>https://github.com/your-org/Laya4j</url>
+    <name>Laya4j Parent</name>
+    <description>Parent/aggregator for Laya4j modules. The published library lives in laya4j-core/.</description>
+    <url>https://github.com/aidenma/Laya4j</url>
 
     <licenses>
         <license>
@@ -23,17 +23,22 @@
 
     <developers>
         <developer>
-            <id>your-id</id>
-            <name>Your Name</name>
-            <email>your.email@example.com</email>
+            <id>aidenma</id>
+            <name>aidenma</name>
+            <email>aidenma@tencent.com</email>
         </developer>
     </developers>
 
     <scm>
-        <connection>scm:git:git://github.com/your-org/Laya4j.git</connection>
-        <developerConnection>scm:git:ssh://git@github.com:your-org/Laya4j.git</developerConnection>
-        <url>https://github.com/your-org/Laya4j</url>
+        <connection>scm:git:git://github.com/aidenma/Laya4j.git</connection>
+        <developerConnection>scm:git:ssh://git@github.com:aidenma/Laya4j.git</developerConnection>
+        <url>https://github.com/aidenma/Laya4j</url>
     </scm>
+
+    <modules>
+        <module>laya4j-core</module>
+        <module>laya4j-example</module>
+    </modules>
 
     <properties>
         <maven.compiler.source>17</maven.compiler.source>
@@ -46,148 +51,7 @@
         <skipDeployTests>true</skipDeployTests>
     </properties>
 
-    <dependencies>
-        <dependency>
-            <groupId>com.microsoft.onnxruntime</groupId>
-            <artifactId>onnxruntime</artifactId>
-            <version>${onnxruntime.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>ai.djl.huggingface</groupId>
-            <artifactId>tokenizers</artifactId>
-            <version>${djl.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-nop</artifactId>
-            <version>2.0.13</version>
-        </dependency>
-
-        <dependency>
-            <groupId>org.junit.jupiter</groupId>
-            <artifactId>junit-jupiter</artifactId>
-            <version>${junit.version}</version>
-            <scope>test</scope>
-        </dependency>
-    </dependencies>
-
-    <build>
-        <finalName>laya4j-${project.version}</finalName>
-        <plugins>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.11.0</version>
-                <configuration>
-                    <source>17</source>
-                    <target>17</target>
-                </configuration>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-surefire-plugin</artifactId>
-                <version>3.2.5</version>
-            </plugin>
-            <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>exec-maven-plugin</artifactId>
-                <version>3.1.0</version>
-                <configuration>
-                    <mainClass>com.laya4j.MainApplication</mainClass>
-                </configuration>
-            </plugin>
-        </plugins>
-
-        <!-- 不打包 1.2 GB ONNX 模型到 jar(模型太大,单独放 GitHub Release / HF Hub) -->
-        <resources>
-            <resource>
-                <directory>src/main/resources</directory>
-                <excludes>
-                    <exclude>models/**</exclude>
-                </excludes>
-            </resource>
-        </resources>
-    </build>
-
-    <profiles>
-        <!-- GPG 签名 profile(发布到 Maven Central 需要所有 jar 都签名) -->
-        <profile>
-            <id>release</id>
-            <build>
-                <plugins>
-                    <plugin>
-                        <groupId>org.apache.maven.plugins</groupId>
-                        <artifactId>maven-source-plugin</artifactId>
-                        <version>3.3.0</version>
-                        <executions>
-                            <execution>
-                                <id>attach-sources</id>
-                                <goals>
-                                    <goal>jar-no-fork</goal>
-                                </goals>
-                            </execution>
-                        </executions>
-                    </plugin>
-
-                    <plugin>
-                        <groupId>org.apache.maven.plugins</groupId>
-                        <artifactId>maven-javadoc-plugin</artifactId>
-                        <version>3.6.3</version>
-                        <executions>
-                            <execution>
-                                <id>attach-javadocs</id>
-                                <goals>
-                                    <goal>jar</goal>
-                                </goals>
-                            </execution>
-                        </executions>
-                        <configuration>
-                            <doclint>none</doclint>  <!-- allow missing tags etc. -->
-                            <sourcepath>${project.basedir}/src/main/java</sourcepath>
-                            <detectJavaApiUrl>false</detectJavaApiUrl>
-                            <failOnError>false</failOnError>
-                        </configuration>
-                    </plugin>
-
-                     <plugin>
-                         <groupId>org.apache.maven.plugins</groupId>
-                         <artifactId>maven-gpg-plugin</artifactId>
-                        <version>3.2.2</version>
-                        <executions>
-                            <execution>
-                                <id>sign-artifacts</id>
-                                <phase>verify</phase>
-                                <goals>
-                                    <goal>sign</goal>
-                                </goals>
-                            </execution>
-                        </executions>
-                        <configuration>
-                            <!-- 本地 GPG key 必须在 ~/.gnupg/ -->
-                            <keyname>${gpg.keyname}</keyname>
-                            <passphraseServerId>${gpg.passphrase}</passphraseServerId>
-                        </configuration>
-                    </plugin>
-
-                    <!-- 中央发布 - 用新的 central-publishing-maven-plugin(2024 推荐) -->
-                    <plugin>
-                        <groupId>org.sonatype.central</groupId>
-                        <artifactId>central-publishing-maven-plugin</artifactId>
-                        <version>0.4.0</version>
-                        <extensions>true</extensions>
-                        <configuration>
-                            <publishingServerId>central</publishingServerId>
-                            <autoPublish>true</autoPublish>
-                            <waitUntil>published</waitUntil>
-                            <deploymentName>${project.name}-${project.version}</deploymentName>
-                        </configuration>
-                    </plugin>
-                </plugins>
-            </build>
-        </profile>
-    </profiles>
-
-    <!-- 配置发布仓库(只是 metadata,不发布 ONNX 模型) -->
+    <!-- 配置发布仓库(只是 metadata,不发布 ONNX 模型);由 laya4j-core 继承 -->
     <distributionManagement>
         <snapshotRepository>
             <id>central</id>

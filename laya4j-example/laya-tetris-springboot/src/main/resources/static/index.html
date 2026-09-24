@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Laya Tetris · 决策可视化</title>
+<style>
+  :root {
+    --bg: #0d1117; --panel: #161b22; --border: #30363d; --text: #e6edf3;
+    --muted: #8b949e; --accent: #58a6ff; --green: #3fb950; --red: #f85149; --amber: #d29922;
+    --falling: #f0f6fc;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg); color: var(--text);
+    font-family: "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
+    font-size: 13px; padding: 24px;
+  }
+  header { margin-bottom: 16px; }
+  header h1 { font-size: 18px; font-weight: 600; }
+  header h1 .laya { color: var(--accent); }
+  header p { color: var(--muted); margin-top: 4px; }
+  .layout { display: grid; grid-template-columns: auto 460px; gap: 20px; align-items: start; }
+  .card { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 16px; }
+  .card h2 {
+    font-size: 12px; font-weight: 600; color: var(--muted);
+    text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px;
+  }
+  canvas { display: block; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); }
+  .hud { display: flex; gap: 18px; margin-top: 12px; color: var(--muted); flex-wrap: wrap; }
+  .hud b { color: var(--text); font-size: 15px; }
+  .piece-preview { display: flex; gap: 14px; margin-top: 10px; color: var(--muted); font-size: 12px; }
+  .piece-chip { padding: 3px 10px; border-radius: 12px; background: rgba(88,166,255,0.12);
+    color: var(--accent); border: 1px solid rgba(88,166,255,0.35); }
+  .controls { display: flex; gap: 8px; margin-top: 14px; flex-wrap: wrap; align-items: center; }
+  button { background: #21262d; color: var(--text); border: 1px solid var(--border);
+    border-radius: 6px; padding: 7px 14px; cursor: pointer; font-family: inherit; font-size: 12px; }
+  button:hover { border-color: var(--accent); }
+  button.primary { background: #1f6feb; border-color: #1f6feb; }
+  label.ctl { color: var(--muted); display: flex; align-items: center; gap: 6px; }
+  input[type=range] { width: 100px; accent-color: var(--accent); }
+  input[type=number] { width: 70px; background: var(--bg); color: var(--text);
+    border: 1px solid var(--border); border-radius: 6px; padding: 5px 8px; font-family: inherit; }
+  .model-info { display: flex; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
+  .chip { padding: 3px 10px; border-radius: 12px; font-size: 11px;
+    background: rgba(88,166,255,0.12); color: var(--accent); border: 1px solid rgba(88,166,255,0.35); }
+  .chip.hot { background: rgba(210,153,34,0.12); color: var(--amber); border-color: rgba(210,153,34,0.35); }
+  .state-json { background: var(--bg); border: 1px solid var(--border); border-radius: 6px;
+    padding: 10px; font-size: 11px; color: var(--muted); white-space: pre-wrap;
+    word-break: break-all; max-height: 90px; overflow: auto; }
+  .q-block { margin-top: 14px; }
+  .q-title { font-size: 12px; margin-bottom: 8px; }
+  .tag { display: inline-block; padding: 1px 7px; border-radius: 4px; font-size: 10px;
+    font-weight: 700; letter-spacing: 0.5px; margin-right: 6px; vertical-align: 1px; }
+  .tag.choice { background: rgba(88,166,255,0.15); color: var(--accent); border: 1px solid rgba(88,166,255,0.4); }
+  .tag.noul { background: rgba(210,153,34,0.15); color: var(--amber); border: 1px solid rgba(210,153,34,0.4); }
+  .tag.score { background: rgba(63,185,80,0.15); color: var(--green); border: 1px solid rgba(63,185,80,0.4); }
+  .bar-row { display: grid; grid-template-columns: 34px 1fr 52px 52px; gap: 8px; align-items: center; margin-bottom: 5px; }
+  .bar-row .lbl { color: var(--muted); }
+  .bar-track { height: 14px; background: var(--bg); border-radius: 4px; overflow: hidden; border: 1px solid var(--border); }
+  .bar-fill { height: 100%; background: var(--accent); border-radius: 3px; transition: width 0.15s; }
+  .bar-row.best .lbl, .bar-row.best .val { color: var(--text); font-weight: 700; }
+  .bar-row.best .bar-fill { background: var(--green); }
+  .bar-row .risk { font-size: 10px; text-align: right; }
+  .bar-row .risk.safe { color: var(--green); }
+  .bar-row .risk.danger { color: var(--red); }
+  .cand-desc { grid-column: 1 / -1; font-size: 10px; color: var(--muted); margin: -2px 0 4px 42px; }
+  .bar-row.best .cand-desc { color: var(--accent); }
+  .health-badge { display: inline-block; padding: 4px 12px; border-radius: 12px; font-weight: 700; font-size: 13px; }
+  .health-critical { background: rgba(248,81,73,0.15); color: var(--red); }
+  .health-risky { background: rgba(210,153,34,0.15); color: var(--amber); }
+  .health-stable { background: rgba(88,166,255,0.15); color: var(--accent); }
+  .health-strong { background: rgba(63,185,80,0.15); color: var(--green); }
+  .verdict { margin-top: 14px; padding: 10px 12px; border-radius: 8px; border: 1px solid var(--border);
+    background: var(--bg); display: flex; justify-content: space-between; align-items: center; }
+  .verdict .mode { font-size: 11px; color: var(--muted); }
+  .verdict .dir { font-size: 18px; font-weight: 700; }
+  .verdict.model .dir { color: var(--green); }
+  .verdict.fallback .dir { color: var(--amber); }
+  .verdict.gameover .dir { color: var(--red); }
+  .verdict.fallback { border-color: rgba(210,153,34,0.4); }
+  .log { margin-top: 14px; max-height: 140px; overflow: auto; font-size: 11px; color: var(--muted); line-height: 1.7; }
+  .log .fb { color: var(--amber); } .log .ok { color: var(--green); } .log .dd { color: var(--red); }
+  footer { margin-top: 16px; color: var(--muted); font-size: 11px; }
+  footer code { color: var(--accent); }
+</style>
+</head>
+<body>
+
+<header>
+  <h1><span class="laya">Laya</span> Tetris · 决策可视化</h1>
+  <p>每步一次 forward：1 个 CHOICE(候选落点)+ N 个 NOUL(逐候选风险判断)+ 1 个 SCORE(盘面健康度) · 方块先以出生形态显示，再旋转/横移到 Laya 选定的位置，最后真实下落 · 模型选择优先，安全规则兜底纠错</p>
+</header>
+
+<div class="layout">
+  <div class="card">
+    <h2>Game Board</h2>
+    <canvas id="board"></canvas>
+    <div class="piece-preview">
+      <span class="piece-chip" id="current-piece">当前: —</span>
+      <span class="piece-chip" id="next-piece">下一个: —</span>
+    </div>
+    <div class="hud">
+      <span>turn <b id="hud-turn">0</b></span>
+      <span>score <b id="hud-score">0</b></span>
+      <span>lines <b id="hud-lines">0</b></span>
+    </div>
+    <div class="controls">
+      <button class="primary" id="btn-run">▶ 自动</button>
+      <button id="btn-step">单步</button>
+      <button id="btn-reset">新局</button>
+      <label class="ctl">节奏 <input type="range" id="speed" min="10" max="1200" value="400" step="10"><span id="speed-v">400ms</span></label>
+      <label class="ctl">种子 <input type="number" id="seed" value="42"></label>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Laya Decision Trace</h2>
+    <div class="model-info">
+      <span class="chip" id="model-chip">模型: —</span>
+      <span class="chip" id="latency-chip">推理: —</span>
+      <span class="chip" id="throughput-chip">吞吐: —</span>
+      <span class="chip" id="health-chip">盘面健康度: —</span>
+    </div>
+    <div class="state-json" id="state">等待后端…</div>
+
+    <div class="q-block">
+      <div class="q-title"><span class="tag choice">CHOICE</span>placement — 候选落点概率 / 风险(NOUL)</div>
+      <div id="candidate-bars"></div>
+    </div>
+
+    <div class="verdict model" id="verdict">
+      <span class="mode" id="verdict-mode">等待推理…</span>
+      <span class="dir" id="verdict-dir">—</span>
+    </div>
+
+    <div class="log" id="log"></div>
+  </div>
+</div>
+
+<footer>
+  数据来自 <code>GET /api/state</code> · <code>POST /api/step</code> · <code>POST /api/new</code>；
+  切换真实 Laya 模型：<code>-Dlaya.tetris.model=onnx</code>
+</footer>
+
+<script>
+"use strict";
+
+// ============================== 常量与状态 ==============================
+
+const CS = 24, PAD = 6;
+let BW = 10, BH = 20;
+let lastSnapshot = null;
+let running = false;      // 自动播放开关
+let loopTimer = null;
+
+const canvas = document.getElementById("board");
+const ctx = canvas.getContext("2d");
+
+/**
+ * 7 种方块的 4 个旋转状态,坐标与后端 Tetromino.java 逐字节对应
+ * (row 越大越靠下,col 越大越靠右)。前端独立维护这份形状表,
+ * 是为了不依赖后端每帧传输方块格子数组,只需 {piece, rotation, col, row}
+ * 四个标量即可在客户端重建整段下落轨迹的每一帧。
+ */
+const PIECES = {
+  I: [[[1,0],[1,1],[1,2],[1,3]], [[0,2],[1,2],[2,2],[3,2]], [[2,0],[2,1],[2,2],[2,3]], [[0,1],[1,1],[2,1],[3,1]]],
+  O: [[[0,0],[0,1],[1,0],[1,1]], [[0,0],[0,1],[1,0],[1,1]], [[0,0],[0,1],[1,0],[1,1]], [[0,0],[0,1],[1,0],[1,1]]],
+  T: [[[0,1],[1,0],[1,1],[1,2]], [[0,1],[1,1],[1,2],[2,1]], [[1,0],[1,1],[1,2],[2,1]], [[0,1],[1,0],[1,1],[2,1]]],
+  S: [[[0,1],[0,2],[1,0],[1,1]], [[0,1],[1,1],[1,2],[2,2]], [[0,1],[0,2],[1,0],[1,1]], [[0,1],[1,1],[1,2],[2,2]]],
+  Z: [[[0,0],[0,1],[1,1],[1,2]], [[0,2],[1,1],[1,2],[2,1]], [[0,0],[0,1],[1,1],[1,2]], [[0,2],[1,1],[1,2],[2,1]]],
+  J: [[[0,0],[1,0],[1,1],[1,2]], [[0,1],[0,2],[1,1],[2,1]], [[1,0],[1,1],[1,2],[2,2]], [[0,1],[1,1],[2,0],[2,1]]],
+  L: [[[0,2],[1,0],[1,1],[1,2]], [[0,1],[1,1],[2,1],[2,2]], [[1,0],[1,1],[1,2],[2,0]], [[0,0],[0,1],[1,1],[2,1]]],
+};
+
+// ============================== Canvas 渲染 ==============================
+
+function resizeCanvasIfNeeded() {
+  const W = BW * CS + PAD * 2, H = BH * CS + PAD * 2;
+  if (canvas.width !== W || canvas.height !== H) { canvas.width = W; canvas.height = H; }
+}
+
+function rr(x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.roundRect(x, y, w, h, r);
+  ctx.fill();
+}
+
+/**
+ * 渲染一帧棋盘:静态已占据格子(settled) + 可选的下落中方块(falling)。
+ *
+ * @param settledCells 已固化的格子坐标列表 [[row,col], ...]
+ * @param falling      下落中的方块 {type, rotation, col, row}(row 可为小数,
+ *                     用于插值动画);传 null 表示不画下落方块
+ */
+function drawBoard(settledCells, falling) {
+  resizeCanvasIfNeeded();
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.fillStyle = "#0d1117";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  // 网格底
+  for (let r = 0; r < BH; r++) {
+    for (let c = 0; c < BW; c++) {
+      ctx.fillStyle = (r + c) % 2 === 0 ? "#141a22" : "#10151c";
+      rr(c * CS + PAD, r * CS + PAD, CS - 2, CS - 2, 4);
+    }
+  }
+
+  // 危险区提示线(棋盘顶部 4 行——越靠近顶部堆叠越危险,而非靠近底部)
+  ctx.strokeStyle = "rgba(248,81,73,0.35)";
+  ctx.setLineDash([4, 4]);
+  ctx.beginPath();
+  ctx.moveTo(PAD, 4 * CS + PAD);
+  ctx.lineTo(BW * CS + PAD, 4 * CS + PAD);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // 已固化的格子:顶部 4 行内(危险区)标红,其余标蓝
+  for (const [r, c] of settledCells) {
+    ctx.fillStyle = r < 4 ? "#f85149" : "#2d5b8f";
+    rr(c * CS + PAD + 1, r * CS + PAD + 1, CS - 4, CS - 4, 5);
+  }
+
+  // 下落中的方块:亮色 + 发光,与已固化格子形成明显区分
+  if (falling) {
+    // falling.rotation 在 tween 过程中是连续插值的小数(如 1.5),而 PIECES
+    // 表只有 4 个离散形状,不能直接用小数下标(会取到 undefined 导致崩溃)。
+    // 四舍五入取最近的离散旋转态,让形状在插值过半时"翻转"一次,
+    // 位置(row/col)仍保持平滑过渡。
+    const rotIndex = ((Math.round(falling.rotation) % 4) + 4) % 4;
+    const shape = PIECES[falling.type][rotIndex];
+    ctx.save();
+    ctx.shadowColor = "rgba(240,246,252,0.85)";
+    ctx.shadowBlur = 8;
+    ctx.fillStyle = "#f0f6fc";
+    for (const [dr, dc] of shape) {
+      const r = falling.row + dr, c = falling.col + dc;
+      if (r < -1 || r >= BH) continue; // 略微允许在棋盘上方短暂可见
+      rr(c * CS + PAD + 1, Math.max(-CS, r * CS) + PAD + 1, CS - 4, CS - 4, 5);
+    }
+    ctx.restore();
+  }
+}
+
+/**
+ * 在指定毫秒数内,把一个"下落中方块"的状态从 (fromRow,fromCol,fromRotation)
+ * 插值动画到 (toRow,toCol,toRotation),每帧调用 onFrame 重绘棋盘。
+ * 旋转角度按最短路径插值(经过 4 态循环),行/列走线性插值。
+ *
+ * @return 动画播放完毕后 resolve 的 Promise
+ */
+function tweenPiece(settledCells, type, from, to, durationMs, ease) {
+  return new Promise(resolve => {
+    if (durationMs <= 0) {
+      drawBoard(settledCells, { type, rotation: to.rotation, col: to.col, row: to.row });
+      resolve();
+      return;
+    }
+    const t0 = performance.now();
+    // 旋转走最短路径(例如 0→3 应该是 -1 而不是 +3)
+    let dRot = to.rotation - from.rotation;
+    if (dRot > 2) dRot -= 4;
+    if (dRot < -2) dRot += 4;
+
+    function frame(now) {
+      const p = Math.min(1, (now - t0) / durationMs);
+      const e = ease(p);
+      const row = from.row + (to.row - from.row) * e;
+      const col = from.col + (to.col - from.col) * e;
+      const rotation = from.rotation + dRot * e;
+      drawBoard(settledCells, { type, rotation, col, row });
+      if (p < 1) {
+        requestAnimationFrame(frame);
+      } else {
+        resolve();
+      }
+    }
+    requestAnimationFrame(frame);
+  });
+}
+
+const easeOutQuad = p => 1 - (1 - p) * (1 - p);
+const easeInOutCubic = p => p < 0.5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2;
+
+/**
+ * 播放一次完整落子的三段式动画,清晰呈现"Laya 是怎么决策的"这个过程:
+ *
+ * <ol>
+ *   <li><b>出生显形</b>(hold):方块以出生时的旋转/列静止显示片刻
+ *       ——这是 Laya 真正开始决策<b>之前</b>棋盘上出现的原始形状</li>
+ *   <li><b>决策过渡</b>(tween):从出生形态平滑过渡到 Laya 选定的
+ *       旋转状态与列位置,直观展示"模型把方块转成了什么样、挪到了哪一列"</li>
+ *   <li><b>硬降下落</b>(fall):从决策位置正上方快速下落到 landingRow 并固化</li>
+ * </ol>
+ *
+ * @param trace 本次决策轨迹(DecisionTrace);spawnRotation<0 时
+ *              (游戏结束、无候选落点)不播放动画,直接 resolve
+ */
+/**
+ * 以"节奏"滑条当前值算出一个动画缩放系数:400ms 为 1x 基准,
+ * 滑条拉到最快(10ms)时缩到 0.1x,让下落动画本身也跟着提速,
+ * 而不是被固定时长的动画卡住导致调节滑条"看不出变快"。
+ */
+function currentSpeedScale() {
+  const ms = parseInt(document.getElementById("speed").value) || 400;
+  return Math.min(2, Math.max(0.1, ms / 400));
+}
+
+async function animateFall(trace) {
+  if (!trace || trace.spawnRotation < 0 || !PIECES[trace.piece]) {
+    return;
+  }
+  const scale = currentSpeedScale();
+  const settled = trace.boardBeforeCells;
+  const spawn = { row: 0, col: trace.spawnColumn, rotation: trace.spawnRotation };
+  const decided = { row: 0, col: trace.column, rotation: trace.rotation };
+
+  // 阶段 1:出生显形,静止片刻
+  drawBoard(settled, { type: trace.piece, rotation: spawn.rotation, col: spawn.col, row: spawn.row });
+  await sleep(260 * scale);
+
+  // 阶段 2:决策过渡(旋转 + 横移到目标列),若出生位置已等于决策位置则跳过
+  if (spawn.col !== decided.col || spawn.rotation !== decided.rotation) {
+    await tweenPiece(settled, trace.piece, spawn, decided, 260 * scale, easeInOutCubic);
+    await sleep(120 * scale);
+  }
+
+  // 阶段 3:硬降下落
+  const distance = Math.max(1, trace.landingRow - decided.row);
+  const fallDuration = Math.min(480, Math.max(140, distance * 16)) * scale;
+  await tweenPiece(settled, trace.piece,
+      decided,
+      { row: trace.landingRow, col: trace.column, rotation: trace.rotation },
+      fallDuration, easeOutQuad);
+}
+
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+// ============================== 决策面板渲染 ==============================
+
+function renderState(t) {
+  const el = document.getElementById("state");
+  el.textContent = t ? t.state : "等待推理…";
+}
+
+// 盘面健康度的中文展示映射(后端 SCORE 问题的选项文本本身仍是英文,
+// 因为那是发给 Laya 模型的协议内容,改成中文会影响真实模型的语义理解;
+// 这里只在前端渲染时把英文等级名翻成中文,不动后端协议)。
+const HEALTH_LEVEL_CN = {
+  critical: "危急", risky: "风险", stable: "稳定", strong: "健壮",
+};
+
+function renderModelInfo(t) {
+  const mc = document.getElementById("model-chip");
+  const lc = document.getElementById("latency-chip");
+  const hc = document.getElementById("health-chip");
+  if (!t) return;
+  mc.textContent = "模型: " + t.model;
+  lc.textContent = "推理: " + t.latencyMs + "ms";
+  lc.classList.toggle("hot", t.latencyMs > 50);
+  if (t.boardHealthLevel) {
+    const cn = HEALTH_LEVEL_CN[t.boardHealthLevel] || t.boardHealthLevel;
+    hc.innerHTML = "盘面健康度: <span class='health-badge health-" + t.boardHealthLevel + "'>" + cn + "</span>";
+  }
+}
+
+function renderCandidates(t) {
+  const el = document.getElementById("candidate-bars");
+  el.innerHTML = "";
+  if (!t || !t.shortlistIds) return;
+  for (const id of t.shortlistIds) {
+    const p = (t.choiceProbs && t.choiceProbs[id]) || 0;
+    const risk = (t.risk && t.risk[id]) || 0;
+    const best = id === t.choicePick;
+    const desc = (t.shortlistDescriptions && t.shortlistDescriptions[id]) || "";
+    const row = document.createElement("div");
+    row.className = "bar-row" + (best ? " best" : "");
+    row.title = desc;
+    row.innerHTML = `<span class="lbl">${id}</span>` +
+      `<div class="bar-track"><div class="bar-fill" style="width:${(p * 100).toFixed(1)}%"></div></div>` +
+      `<span class="val">${(p * 100).toFixed(1)}%</span>` +
+      `<span class="risk ${risk < 0.5 ? "safe" : "danger"}">risk ${(risk * 100).toFixed(0)}%</span>`;
+    if (desc) {
+      const descRow = document.createElement("div");
+      descRow.className = "cand-desc";
+      descRow.textContent = desc;
+      row.appendChild(descRow);
+    }
+    el.appendChild(row);
+  }
+}
+
+function renderVerdict(t) {
+  const v = document.getElementById("verdict");
+  v.classList.remove("model", "fallback", "gameover");
+  if (!t) { document.getElementById("verdict-dir").textContent = "—"; return; }
+  if (t.verdictMode === "gameover") {
+    v.classList.add("gameover");
+    document.getElementById("verdict-mode").textContent = "无合法落点,游戏结束";
+    document.getElementById("verdict-dir").textContent = "GAME OVER";
+    return;
+  }
+  v.classList.add(t.verdictMode === "model" ? "model" : "fallback");
+  document.getElementById("verdict-mode").textContent =
+    t.verdictMode === "model" ? "模型选择（安全，直接采纳）"
+    : "安全兜底纠错（模型选择过于危险，改用启发式最优候选）";
+  document.getElementById("verdict-dir").textContent = (t.verdictCandidateId || "-").toUpperCase();
+}
+
+function renderHud(s) {
+  document.getElementById("hud-turn").textContent = s.turn;
+  document.getElementById("hud-score").textContent = s.score;
+  document.getElementById("hud-lines").textContent = s.linesCleared;
+  document.getElementById("current-piece").textContent = "当前: " + s.currentPiece;
+  document.getElementById("next-piece").textContent = "下一个: " + s.nextPiece;
+}
+
+// ============================== 真实决策吞吐 & 路径 ==============================
+// "节奏"滑条只是前端调度间隔,不代表后端真的能这么快做决策。
+// 这里用最近 1 秒内实际完成的决策时间戳,统计真实吞吐(次/秒)与平均推理耗时,
+// 用来验证"10ms 节奏"下后端是否真的跟得上,而不是被队列拖后腿。
+const decisionWindow = [];
+function recordThroughput(t) {
+  if (!t) return;
+  const now = performance.now();
+  decisionWindow.push({ now, latency: t.latencyMs });
+  const cutoff = now - 1000;
+  while (decisionWindow.length && decisionWindow[0].now < cutoff) decisionWindow.shift();
+  const dps = decisionWindow.length;
+  const avg = dps ? (decisionWindow.reduce((sum, d) => sum + d.latency, 0) / dps).toFixed(2) : "0";
+  const el = document.getElementById("throughput-chip");
+  if (el) el.textContent = `吞吐: ${dps} 次/秒 · 平均推理 ${avg}ms`;
+}
+
+/**
+ * 把本次决策的完整路径打到浏览器 console,方便逐步核对
+ * "出生形态 → 决策过渡 → 落地" 与候选概率/风险/裁决的对应关系。
+ */
+function logDecisionPath(s) {
+  const t = s.lastDecision;
+  if (!t) return;
+  if (t.verdictMode === "gameover") {
+    console.log(`[Laya决策] turn=${s.turn} — 无合法落点，游戏结束`);
+    return;
+  }
+  const candidates = (t.shortlistIds || []).map(id => ({
+    id,
+    desc: (t.shortlistDescriptions && t.shortlistDescriptions[id]) || "",
+    p: +((t.choiceProbs && t.choiceProbs[id]) || 0).toFixed(4),
+    risk: +((t.risk && t.risk[id]) || 0).toFixed(3),
+  }));
+  console.log(
+    `[Laya决策] turn=${s.turn} piece=${t.piece} model=${t.model} 推理耗时=${t.latencyMs}ms\n` +
+    `  路径: 出生(rot=${t.spawnRotation}, col=${t.spawnColumn})` +
+    ` → 决策(rot=${t.rotation}, col=${t.column})` +
+    ` → 落地(row=${t.landingRow})\n` +
+    `  候选: ${JSON.stringify(candidates)}\n` +
+    `  裁决: ${t.verdictMode} → ${t.verdictCandidateId}` +
+    (t.verdictMode === "fallback" ? ` (模型原选 ${t.choicePick} 风险过高，已兜底纠正)` : "")
+  );
+}
+
+function appendLog(s) {
+  const t = s.lastDecision;
+  if (!t) return;
+  const el = document.getElementById("log");
+  const line = document.createElement("div");
+  const rotInfo = `rot ${t.spawnRotation}→${t.rotation}, col ${t.spawnColumn}→${t.column}`;
+  if (t.verdictMode === "gameover") line.innerHTML = `<span class="dd">turn ${s.turn} — 无合法落点，游戏结束</span>`;
+  else if (t.verdictMode === "model") line.innerHTML = `<span class="ok">turn ${s.turn}</span> ${t.piece} (${rotInfo}) ${t.model} → ${t.verdictCandidateId} (${t.latencyMs}ms)`;
+  else line.innerHTML = `<span class="fb">turn ${s.turn}</span> ${t.piece} (${rotInfo}) fallback → ${t.verdictCandidateId}（模型选 ${t.choicePick} 风险过高）`;
+  el.prepend(line);
+  while (el.children.length > 60) el.lastChild.remove();
+}
+
+// ============================== 主流程 ==============================
+
+/**
+ * 应用一次新的快照:先立即展示决策面板(概率/风险/裁决/日志),
+ * 同时播放方块下落动画,动画结束后再把棋盘定格为最终盘面
+ * (此时已包含消行结果)。
+ */
+async function apply(s) {
+  lastSnapshot = s;
+  BW = s.boardWidth; BH = s.boardHeight;
+
+  const t = s.lastDecision;
+  renderState(t);
+  renderModelInfo(t);
+  renderCandidates(t);
+  renderVerdict(t);
+  renderHud(s);
+  appendLog(s);
+  recordThroughput(t);
+  logDecisionPath(s);
+
+  await animateFall(t);
+  drawBoard(s.filledCells, null);
+
+  if (s.gameOver) {
+    running = false;
+    document.getElementById("btn-run").textContent = "▶ 自动";
+  }
+}
+
+async function api(path, method = "GET") {
+  const r = await fetch(path, { method });
+  if (!r.ok) throw new Error(`${path}: HTTP ${r.status}`);
+  return r.json();
+}
+
+async function step() {
+  try {
+    await apply(await api("/api/step", "POST"));
+  } catch (e) {
+    console.error(e);
+    running = false;
+  }
+}
+
+async function reset() {
+  running = false;
+  if (loopTimer) clearTimeout(loopTimer);
+  const seed = parseInt(document.getElementById("seed").value) || 42;
+  document.getElementById("log").innerHTML = "";
+  try {
+    await apply(await api(`/api/new?seed=${seed}`, "POST"));
+  } catch (e) {
+    console.error(e);
+  }
+}
+
+/**
+ * 自动播放循环:用"每步完成后再 setTimeout 调度下一步"的串行方式,
+ * 而不是 setInterval——因为每步都包含一段下落动画(可能长达数百毫秒),
+ * setInterval 会在动画未播完时就触发下一次请求,导致画面撕裂/请求堆积。
+ */
+async function loopStep() {
+  if (!running) return;
+  await step();
+  if (!running) return;
+  if (lastSnapshot && lastSnapshot.gameOver) {
+    running = false;
+    document.getElementById("btn-run").textContent = "▶ 自动";
+    return;
+  }
+  const ms = parseInt(document.getElementById("speed").value);
+  loopTimer = setTimeout(loopStep, ms);
+}
+
+async function start() {
+  if (running) return;
+  if (lastSnapshot && lastSnapshot.gameOver) await reset();
+  running = true;
+  document.getElementById("btn-run").textContent = "⏸ 暂停";
+  loopStep();
+}
+
+function stop() {
+  running = false;
+  if (loopTimer) clearTimeout(loopTimer);
+  document.getElementById("btn-run").textContent = "▶ 自动";
+}
+
+document.getElementById("btn-run").onclick = () => { running ? stop() : start(); };
+document.getElementById("btn-step").onclick = () => { stop(); step(); };
+document.getElementById("btn-reset").onclick = reset;
+document.getElementById("speed").oninput = e => {
+  document.getElementById("speed-v").textContent = e.target.value + "ms";
+};
+
+reset();
+</script>
+</body>
+</html>

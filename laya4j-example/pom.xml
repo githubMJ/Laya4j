@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+                             http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>com.laya4j.examples</groupId>
+    <artifactId>laya4j-example</artifactId>
+    <version>0.1.0</version>
+    <packaging>pom</packaging>
+
+    <name>laya4j-example</name>
+    <description>
+        Laya4j 示例工程父模块。各子项目为独立可运行的示例,
+    </description>
+    <url>https://github.com/aidenma/Laya4j</url>
+
+    <modules>
+        <module>laya-tetris-springboot</module>
+        <module>laya-snake</module>
+    </modules>
+
+    <properties>
+        <maven.compiler.source>17</maven.compiler.source>
+        <maven.compiler.target>17</maven.compiler.target>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    </properties>
+</project>
