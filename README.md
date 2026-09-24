@@ -25,7 +25,7 @@ r.forEach((k, v) -> System.out.println(k + ": " + v));
 </dependency>
 ```
 
-Requires **Java 17+**. Maven Central publishing guide: [MAVEN_CENTRAL_DEPLOY.md](MAVEN_CENTRAL_DEPLOY.md).
+Requires **Java 17+**. Publishing flow: `mvn clean deploy -P release` (see `## Publish to Maven Central`).
 
 ---
 
@@ -33,7 +33,7 @@ Requires **Java 17+**. Maven Central publishing guide: [MAVEN_CENTRAL_DEPLOY.md]
 
 ```bash
 # 1. Clone
-git clone https://github.com/aidenma/Laya4j.git
+git clone https://github.com/githubMJ/Laya4j.git
 cd Laya4j
 
 # 2. Build & test
@@ -190,9 +190,6 @@ mvn clean deploy -P release
 
 ```
 Laya4j/                             # Maven 多模块聚合根 (com.laya4j:laya4j-parent)
-├── pom.xml                          # 父聚合 POM,声明各模块
-├── README.md
-├── MAVEN_CENTRAL_DEPLOY.md
 ├── CHANGELOG.md
 ├── laya4j-core/                     # 发布库模块 (com.laya4j:laya4j-core)
 │   ├── pom.xml                      # Java 17 + ONNX Runtime + DJL 0.30 + slf4j-api + JUnit 5
