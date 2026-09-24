@@ -1,0 +1,12 @@
+# PyTorch/ONNX 导出与验证工具,不参与 Java 项目构建,不打进 Maven Central
+torch>=2.4
+onnx>=1.16
+onnxruntime>=1.18
+onnx-graphsurgeon>=0.5
+safetensors>=0.4
+transformers>=4.44
+huggingface_hub>=0.24
+numpy>=1.26
+
+# 上游 Laya Python 包(提供 build_model / build_sequence 等):
+#   pip install git+https://github.com/NandhaKishorM/laya.git

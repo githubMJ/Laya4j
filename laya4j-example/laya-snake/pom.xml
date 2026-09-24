@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+                             http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>3.4.5</version>
+        <relativePath/>
+    </parent>
+
+    <groupId>com.laya4j.examples</groupId>
+    <artifactId>laya-snake</artifactId>
+    <version>0.1.0</version>
+    <name>laya-snake</name>
+    <description>
+        贪吃蛇 Web 示例:每一步用 Laya 的 1 个 choice(下一步方向)+ 4 个 noul
+        (该方向是否致命)驱动蛇的移动,演示"模型决策优先,规则兜底保安全"的
+        混合决策模式,并带实时 Web 动画展示决策轨迹。
+        本模块不属于 Laya4j 发布库,仅作为独立可运行的示例工程。
+    </description>
+
+    <properties>
+        <java.version>17</java.version>
+        <!-- parent 不是 laya4j-example,版本需与 laya4j-core/pom.xml 保持一致 -->
+        <laya4j-core.version>0.2.0</laya4j-core.version>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.laya4j</groupId>
+            <artifactId>laya4j-core</artifactId>
+            <version>${laya4j-core.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+            </plugin>
+        </plugins>
+    </build>
+</project>

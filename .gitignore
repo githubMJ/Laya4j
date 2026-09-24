@@ -1,7 +1,27 @@
 target/
 .idea/
+*.class
 *.iml
 .DS_Store
 *.log
-models/laya-decision-multilingual-mmbert-base-v0.3.4-1c5edc1.onnx
+
+# 模型权重体积过大(单文件 ~1.2GB),不进 git 仓库;
+# 通过 laya_fine_tune/export_onnx.py 导出或从 HuggingFace Hub / GitHub Release 获取后
+# 放入 models/ 目录即可,详见 models/VERSION.md
+models/*.onnx
 models/tokenizer/
+
+# 本地对比脚本,不推仓库
+compare_accuracy.py
+
+# 上游 Laya(Python)官方仓库的本地 git clone,仅供对照阅读上游更新用,
+# 自身是独立 git 仓库,不作为 Laya4j 的内容/子模块纳入版本控制
+/laya/
+
+# laya_fine_tune/ 下的模型导出产物(.onnx 体积巨大 + tokenizer),不进仓库
+laya_fine_tune/laya_onnx_export/
+laya_fine_tune/**/__pycache__/
+laya_fine_tune/**/*.pyc
+
+# JDK 17 临时下载/解压目录(GitHub Actions setup-java 或本地 bootstrap 用)
+.tmp-jdk/
