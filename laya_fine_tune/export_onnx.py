@@ -52,6 +52,9 @@ parser.add_argument("--out-dir", default="../models",
                     help="导出产物输出目录,默认写到 Laya4j 项目的 models/")
 parser.add_argument("--threshold", type=float, default=1e-3,
                     help="PyTorch/ONNX 对齐误差阈值,超过则报错终止")
+parser.add_argument("--model-dir", default=None,
+                    help="本地微调 checkpoint 目录(snapshot 布局);设置后跳过 HF 下载,"
+                         "版本标签用目录名(如 out/ads → v0.3.21-ads)")
 args = parser.parse_args()
 
 OUT_DIR = Path(args.out_dir)
@@ -61,23 +64,31 @@ laya_version = im.version("laya")
 print(f"上游 laya Python 版本: {laya_version}")
 
 # ============================================================
-# 1. 下载/定位权重快照(0.3.19+ 布局:文件在仓库根,无 subfolder)
+# 1. 定位权重快照:本地微调 checkpoint 或 HF 下载
 # ============================================================
 print("=" * 60)
-print(f"[1] 下载快照 {args.repo}")
+if args.model_dir:
+    print(f"[1] 使用本地微调 checkpoint: {args.model_dir}")
+    snap_root = Path(args.model_dir).resolve()
+    commit_short = snap_root.name or "ft"
+else:
+    print(f"[1] 下载快照 {args.repo}")
+    snap_root = Path(snapshot_download(args.repo, allow_patterns=[
+        "model.safetensors", "rl_agent_config.json",
+        "encoder/config.json", "tokenizer/*",
+    ]))
+    # snapshot 缓存路径形如 ~/.cache/huggingface/hub/models--.../snapshots/<sha>;
+    # 0.3.19+ 仓库无 subfolder,sha 目录即 snap_root 本身
+    import re
+    commit_sha = snap_root.name if re.fullmatch(r"[0-9a-f]{40}", snap_root.name) \
+            else snap_root.parent.name
+    commit_short = commit_sha[:7]
 print("=" * 60)
-snap_root = Path(snapshot_download(args.repo, allow_patterns=[
-    "model.safetensors", "rl_agent_config.json",
-    "encoder/config.json", "tokenizer/*",
-]))
-# snapshot 缓存路径形如 ~/.cache/huggingface/hub/models--.../snapshots/<sha>;
-# 0.3.19+ 仓库无 subfolder,sha 目录即 snap_root 本身
-import re
-commit_sha = snap_root.name if re.fullmatch(r"[0-9a-f]{40}", snap_root.name) \
-        else snap_root.parent.name
-commit_short = commit_sha[:7]
 print(f"  snapshot: {snap_root}")
-print(f"  commit:   {commit_sha}")
+if args.model_dir:
+    print(f"  版本标签: {commit_short} (目录名)")
+else:
+    print(f"  commit:   {commit_sha}")
 
 version_tag = f"{laya_version}-{commit_short}"
 onnx_path = OUT_DIR / f"laya-decision-multilingual-mmbert-base-v{version_tag}.onnx"
