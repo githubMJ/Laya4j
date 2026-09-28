@@ -2,23 +2,34 @@
 
 ## 当前打包的 ONNX 模型
 
-**文件名**: `laya-decision-multilingual-mmbert-base-v0.3.5-1c5edc1.onnx`
+**文件名**: `laya-decision-multilingual-mmbert-base-v0.3.21-e4e9ddf.onnx`(FP32,约 1.29 GB)
 
 ### 来源
 
 | 字段 | 值 |
 |---|---|
-| Laya Python 包版本 | **0.3.5**(上游 main 分支最新,`pyproject.toml` 版本号) |
-| HuggingFace commit SHA | `1c5edc17a7acd8701df6fc341c0d179f1c62c982`(短哈希 `1c5edc1`) |
-| 模型子目录 | `multilingual` |
-| 上游代码 | https://github.com/NandhaKishorM/laya |
-| 上游权重 | https://huggingface.co/convaiinnovations/laya/tree/multilingual |
+| Laya Python 包版本 | **0.3.21**(上游 main 分支最新,editable 安装自本地 clone) |
+| HuggingFace commit SHA | `e4e9ddf21a7b1903b7acffd8814ad4307bf63a67`(短哈希 `e4e9ddf`) |
+| 模型仓库 | `convaiinnovations/laya-multilingual`(**独立仓库**,文件在根目录,无 subfolder) |
+| 导出脚本 | [`laya_fine_tune/export_onnx.py`](../laya_fine_tune/export_onnx.py) |
+| 上游代码 | https://github.com/NandhaKishorM/laya (v0.3.21) |
+| 上游权重 | https://huggingface.co/convaiinnovations/laya-multilingual |
 
-> **注意**:0.3.4 → 0.3.5 是上游的 bug fix / 打包元数据修复版本(见上游
-> commit log:路由器线程安全、拉丁语种误判修复、Python 版本下限提升等),
-> **训练权重本身未变**(HuggingFace commit SHA 仍是 `1c5edc1`)。因此
-> Java 端导出的 ONNX 数值与 0.3.4 版本完全一致,只是随上游代码版本号
-> 同步升级,便于追溯"用哪个版本的导出/加载逻辑生成"。
+> **注意**:上游 0.3.19+ 把 multilingual 权重从 `convaiinnovations/laya` 的
+> `multilingual/` 子目录拆分到独立仓库 `convaiinnovations/laya-multilingual`
+> (旧仓库现仅存 English/ModernBERT-large checkpoint)。新仓库布局:
+> `model.safetensors` + `rl_agent_config.json` + `encoder/config.json` + `tokenizer/`。
+> 导出产物通过 PyTorch/ONNX 数值对齐校验(logits max diff 9.06e-06,
+> softmax 后概率 atol=1e-3 与上游 tests/test_onnx.py 同标准)。
+
+### 历史版本
+
+| 版本 | Laya | HF commit | 备注 |
+|---|---|---|---|
+| **0.3.21-e4e9ddf**(当前) | 0.3.21 | `e4e9ddf`(laya-multilingual 仓库) | 新独立仓库布局;上游 ONNX batch/long parity、opt-in abstention |
+| 0.3.5-1c5edc1 | 0.3.5 | `1c5edc1`(旧 laya 仓库 multilingual/ 子目录) | 旧仓库布局;权重与 0.3.4 相同 |
+
+### Encoder: mmBERT-base
 
 ### Encoder: mmBERT-base
 

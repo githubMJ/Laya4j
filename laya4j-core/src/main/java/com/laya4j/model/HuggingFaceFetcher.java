@@ -53,12 +53,16 @@ public class HuggingFaceFetcher {
      * <p>Naming: task=decision, language=multilingual, encoder=mmbert-base
      * (JHU mmBERT-base, 322M), version=semver + HF commit short hash.
      */
-    public static final String MODEL_VERSION = "0.3.5-1c5edc1";
+    public static final String MODEL_VERSION = "0.3.21-e4e9ddf";
     public static final String MODEL_ENCODER = "mmbert-base";
     public static final String MODEL_FILE = "laya-decision-multilingual-" + MODEL_ENCODER + "-v" + MODEL_VERSION + ".onnx";
 
-    public static final String DEFAULT_REPO = "convaiinnovations/laya";
-    public static final String DEFAULT_SUBFOLDER = "multilingual";
+    /**
+     * 上游 0.3.19+ 把 multilingual 权重拆到独立仓库(文件在仓库根,无子目录);
+     * 旧仓库 convaiinnovations/laya 现仅存 English(ModernBERT-large)。
+     */
+    public static final String DEFAULT_REPO = "convaiinnovations/laya-multilingual";
+    public static final String DEFAULT_SUBFOLDER = "";
 
     /** Resolved artifact locations. */
     public record Fetched(Path tokenizerDir, Path modelDir, Path configFile, Path onnxFile) {}
@@ -83,8 +87,8 @@ public class HuggingFaceFetcher {
     /**
      * Full-resolution entry point.
      *
-     * @param repo           HuggingFace repo id, e.g. {@code "convaiinnovations/laya"}
-     * @param subfolder      subfolder inside the repo, e.g. {@code "multilingual"}
+     * @param repo           HuggingFace repo id, e.g. {@code "convaiinnovations/laya-multilingual"}
+     * @param subfolder      subfolder inside the repo, may be empty (0.3.19+ repos have files at root)
      * @param localModelsDir project-local models directory probed first (may not exist)
      * @param cacheRoot      local cache root (e.g. {@code ~/.cache/laya})
      * @param forceRefresh   re-download tokenizer/config even if cached
@@ -123,7 +127,8 @@ public class HuggingFaceFetcher {
             Files.createDirectories(target.resolve("model"));
             HttpClient http = newHttpClient();
             String token = System.getenv("HF_TOKEN");
-            String base = "https://huggingface.co/" + repo + "/resolve/main/" + subfolder;
+            String base = "https://huggingface.co/" + repo + "/resolve/main"
+                    + (subfolder == null || subfolder.isBlank() ? "" : "/" + subfolder);
             log.info("[hf] repo={} subfolder={}", repo, subfolder);
             log.info("[hf] cache={}", target.toAbsolutePath());
             for (String rel : REQUIRED_FILES) {

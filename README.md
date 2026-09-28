@@ -5,7 +5,7 @@ fast, non-autoregressive, calibrated decisions in a single forward pass via ONNX
 
 ```java
 LayaPredictor p = LayaPredictor.single(
-    Path.of("models/laya-decision-multilingual-mmbert-base-v0.3.5-1c5edc1.onnx"),
+    Path.of("models/laya-decision-multilingual-mmbert-base-v0.3.21-e4e9ddf.onnx"),
     Path.of("models/tokenizer"),
     "multilingual");
 
@@ -127,11 +127,11 @@ of the published library) live under [`laya4j-example/`](laya4j-example/):
 
 ## Model
 
-`models/laya-decision-multilingual-mmbert-base-v0.3.5-1c5edc1.onnx` (1.2 GB FP32).
+`models/laya-decision-multilingual-mmbert-base-v0.3.21-e4e9ddf.onnx` (1.29 GB FP32).
 
 | Field | Value |
 |---|---|
-| Laya Python version | **0.3.5** |
+| Laya Python version | **0.3.21** |
 | HF commit | `1c5edc17...` |
 | Encoder | mmBERT-base (322M, vocab 256k, RoPE 8192) |
 | Format | FP32, full-precision |
@@ -207,7 +207,7 @@ Laya4j/                             # Maven 多模块聚合根 (com.laya4j:laya4
 │   ├── requirements.txt
 │   └── README.md
 ├── models/                          # ONNX weights (NOT in git; generate via laya_fine_tune/export_onnx.py)
-│   ├── laya-decision-multilingual-mmbert-base-v0.3.5-1c5edc1.onnx  (1.2 GB)
+│   ├── laya-decision-multilingual-mmbert-base-v0.3.21-e4e9ddf.onnx  (1.29 GB)
 │   ├── tokenizer/                                                   (33 MB)
 │   ├── rl_agent_config.json
 │   └── VERSION.md
