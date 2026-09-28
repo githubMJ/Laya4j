@@ -25,3 +25,6 @@ laya_fine_tune/**/*.pyc
 
 # JDK 17 临时下载/解压目录(GitHub Actions setup-java 或本地 bootstrap 用)
 .tmp-jdk/
+
+# fine-tune output checkpoints
+laya_fine_tune/out_*/

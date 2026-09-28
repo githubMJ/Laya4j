@@ -22,19 +22,20 @@ router = Router(preload=True, device=device)
 # expected_dict: {question_id: expected_value}
 TESTS = {
     "triage_intent": [
-        # 客服工单 intent 分类
+        # 客服工单 intent 分类 — 期望值对齐 preset 真实标签:
+        # refund / technical_help / billing_question / information / cancellation / other
         ({"body": "我上个月充值的 100 元话费到现在还没到账,怎么回事?"},
-         {"intent": "billing"}),
+         {"intent": "billing_question"}),
         ({"body": "APP 打开就闪退,根本用不了,卸载重装也不行。"},
-         {"intent": "technical"}),
+         {"intent": "technical_help"}),
         ({"body": "请问你们的企业版套餐一年多少钱?包含哪些功能?"},
-         {"intent": "sales"}),
+         {"intent": "information"}),
         ({"body": "你们公司的办公地址在哪里?我想寄个合同过去。"},
          {"intent": "other"}),
         ({"body": "我的订单已经发货 5 天了,物流信息一直停在原地不动。"},
-         {"intent": "shipping"}),
+         {"intent": "other"}),
         ({"body": "我想修改一下账户绑定的手机号码,怎么操作?"},
-         {"intent": "account"}),
+         {"intent": "information"}),
     ],
     "guard_injection": [
         ({"prompt": "请帮我把下面这段代码重构一下,函数太长。"},
@@ -97,18 +98,19 @@ TESTS = {
          {"refund": False}),
     ],
     "router_difficulty": [
+        # 难度分级 — preset 为 4 档: 0=trivial, 1=easy, 2=moderate, 3=hard
         # 简单
         ({"request": "把 'good morning' 翻译成中文。"},
          {"difficulty": "easy", "domain": "writing"}),
         # 中等
         ({"request": "写一个 Python 函数,统计列表中每个元素出现的次数。"},
-         {"difficulty": "medium", "domain": "code"}),
+         {"difficulty": "moderate", "domain": "code"}),
         # 困难
         ({"request": "从法律、财务、技术三个维度分析这份 SaaS 合同,并给出修改建议。"},
          {"difficulty": "hard", "domain": "data_analysis"}),
         # 中等
         ({"request": "用 Kotlin 实现一个 LRU 缓存,要求线程安全。"},
-         {"difficulty": "medium", "domain": "code"}),
+         {"difficulty": "moderate", "domain": "code"}),
         # 简单
         ({"request": "这段话换个更礼貌的说法。"},
          {"difficulty": "easy", "domain": "writing"}),
@@ -220,16 +222,16 @@ for i, (p, exp, ok) in enumerate(details, 1):
     print(f"  {mark} #{i} P={p:.3f}  exp={str(exp):5s}")
 
 print("\n" + "=" * 72)
-print("【评测 6】router - 难度分级 (score: 0=easy, 1=medium, 2=hard)")
+print("【评测 6】router - 难度分级 (score: 0=trivial, 1=easy, 2=moderate, 3=hard)")
 print("=" * 72)
 router_q = laya.router_questions()
-mapping = {0: "easy", 1: "medium", 2: "hard"}
+mapping = {0: "trivial", 1: "easy", 2: "moderate", 3: "hard"}
 correct, total, details = eval_score_band(router_q, TESTS["router_difficulty"], "difficulty", mapping)
 print(f"准确率(±0): {correct}/{total} = {correct/total:.1%}")
 print("明细 (score | band | 期望):")
 for i, (s, band, exp, ok) in enumerate(details, 1):
     mark = "✅" if ok else "❌"
-    print(f"  {mark} #{i} score={s:.2f}  band={str(band):6s}  exp={exp}")
+    print(f"  {mark} #{i} score={s:.2f}  band={str(band):8s}  exp={exp}")
 
 print("\n" + "=" * 72)
 print("【评测 7】router - 领域识别 (choice)")
