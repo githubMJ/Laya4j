@@ -48,5 +48,5 @@ Laya4j 遵循 [语义化版本](https://semver.org/)。
 - ONNX 模型(1.2 GB)不在 Maven Central 包内,需从 HuggingFace Hub 或 GitHub Release 单独获取
 - base 模型在中文威胁检测(50%)/难度分级(0%)/领域识别(40%)准确率低,生产前必须 fine-tune
 
-[0.2.0]: https://github.com/aidenma/Laya4j/releases/tag/v0.2.0
-[0.1.0]: https://github.com/aidenma/Laya4j/releases/tag/v0.1.0
+[0.2.0]: https://github.com/githubMJ/Laya4j/releases/tag/v0.2.0
+[0.1.0]: https://github.com/githubMJ/Laya4j/releases/tag/v0.1.0
