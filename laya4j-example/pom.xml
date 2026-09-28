@@ -14,7 +14,7 @@
     <description>
         Laya4j 示例工程父模块。各子项目为独立可运行的示例,
     </description>
-    <url>https://github.com/aidenma/Laya4j</url>
+    <url>https://github.com/githubMJ/Laya4j</url>
 
     <modules>
         <module>laya-tetris-springboot</module>

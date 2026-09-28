@@ -12,7 +12,7 @@
 
     <name>Laya4j Parent</name>
     <description>Parent/aggregator for Laya4j modules. The published library lives in laya4j-core/.</description>
-    <url>https://github.com/aidenma/Laya4j</url>
+    <url>https://github.com/githubMJ/Laya4j</url>
 
     <licenses>
         <license>
@@ -30,9 +30,9 @@
     </developers>
 
     <scm>
-        <connection>scm:git:git://github.com/aidenma/Laya4j.git</connection>
-        <developerConnection>scm:git:ssh://git@github.com:aidenma/Laya4j.git</developerConnection>
-        <url>https://github.com/aidenma/Laya4j</url>
+        <connection>scm:git:git://github.com/githubMJ/Laya4j.git</connection>
+        <developerConnection>scm:git:ssh://git@github.com:githubMJ/Laya4j.git</developerConnection>
+        <url>https://github.com/githubMJ/Laya4j</url>
     </scm>
 
     <modules>
