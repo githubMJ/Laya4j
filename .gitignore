@@ -28,3 +28,5 @@ laya_fine_tune/**/*.pyc
 
 # fine-tune output checkpoints
 laya_fine_tune/out_*/
+laya_fine_tune/train_ads/items/
+laya_fine_tune/train_ads/out/
